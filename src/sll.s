@@ -39,16 +39,26 @@ init_list:
     movl %esp, %ebp
     
 
-    call allocate_node
+    call allocate_head
     mov %eax, list_head
+    call allocate_node
+    mov %eax, %ebx
+    mov list_head, %eax
+    call set_first
+    call set_last
+    mov %ebx,%eax
+
+    
+    mov list_head,%ebx
+    call set_next
+
     mov %ecx,%ebx
     call set_priority
-    mov list_head, %eax
+    
     mov %edx,%ebx
     call set_value
-    mov list_head, %eax
-    mov %eax,%ebx
-    call set_next
+
+    mov list_head,%eax
 
 
 
@@ -66,6 +76,24 @@ allocate_node:
     mov %eax, %esi
 
     addl node_size, %eax
+
+    movl %eax, %ebx
+    movl $45, %eax 
+    int $0x80    
+    leave
+    ret
+
+# first is the first element of the list, second is the last element
+allocate_head:
+    pushl %ebp
+    movl %esp, %ebp
+
+    movl $45, %eax         # brk
+    xor %ebx, %ebx
+    int $0x80              # Call kernel
+    mov %eax, %esi
+
+    addl $8, %eax
 
     movl %eax, %ebx
     movl $45, %eax 
@@ -97,6 +125,7 @@ add_to_list:
 asc_add_to_list:
     
     mov %eax,list_head 
+    call get_first
     mov %eax, list_ptr
     xor %ecx,%ecx
 
@@ -139,20 +168,28 @@ asc_add_to_list:
                
 dec_add_to_list:
     
-    mov %eax,list_head 
+    mov list_head,%eax 
+    call get_first
+    mov (%eax),%eax
     mov %eax, list_ptr
     xor %ecx,%ecx
+
+
+
+
 
     loop_dec:
 
         mov list_ptr, %eax
-        call get_next_value
-        cmp list_head, %ebx
+        cmp list_head, %eax
         je not_found_dec 
 
         xor %eax, %eax
         cmpl $0, %ebx
         je not_found_dec 
+
+
+
 
         mov list_ptr, %eax
         call get_priority_value
@@ -160,7 +197,9 @@ dec_add_to_list:
         mov list_ptr, %ecx        # ecx is used to remember the last address
         jge lower_dec # eax >= priority, node< to insert
         jl greater_dec
+
             greater_dec:
+                
                 call allocate_node
 
                 mov value, %ebx
@@ -172,10 +211,11 @@ dec_add_to_list:
                 # mov list_head, %ebx
                 # call set_next
                
+                
+                
                 mov %ecx,%ebx
                 # mov %ecx, %eax
                 call set_next 
-               
                
 
                 jmp continue
@@ -185,6 +225,8 @@ dec_add_to_list:
                 call get_next_value
                 mov %ebx,list_ptr 
                 jmp loop_dec
+
+
 
 
 
@@ -205,10 +247,14 @@ not_found_dec:
     mov %ecx, %eax
     call set_next
 
+    mov list_head,%eax 
+    call set_last
+
     jmp continue
 
 not_found:
     call allocate_node
+    
     mov %eax, list_ptr
     mov value, %ebx
     call set_value
@@ -232,6 +278,40 @@ not_found:
 
 
 
+set_last:
+    pushl %ebp
+    movl %esp, %ebp
+
+    call get_last
+    mov %ebx,(%eax)
+    add $8,%eax
+
+    leave
+    ret
+
+set_first:
+    pushl %ebp
+    movl %esp, %ebp
+
+    call get_first
+    mov %ebx,(%eax)
+    add $4,%eax
+
+    leave
+    ret
+get_last:
+    pushl %ebp
+    movl %esp, %ebp
+    sub      $8,%eax
+    leave
+    ret
+
+get_first:
+    pushl %ebp
+    movl %esp, %ebp
+    sub      $4,%eax
+    leave
+    ret
 
 get_priority:
     pushl %ebp
