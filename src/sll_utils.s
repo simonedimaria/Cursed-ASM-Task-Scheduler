@@ -24,8 +24,9 @@ heap_location:
 
 node_size:  .long 12 # 4 next, 4 priority, 4 value       
 
-
-SYS_BRK = 45              # System call number for brk
+SYS_BRK:  
+    .long 45 # System call number for brk 
+        
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
 
@@ -33,11 +34,15 @@ PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .global allocate_node
 .global allocate_head
 .global init_list
+.global compare_nodes
+.global insert_node
 
 .global set_last
 .global set_first
 .global get_first
 .global get_last
+.global get_last_value
+.global get_first_value
 
 .global get_next
 .global get_priority
@@ -86,7 +91,7 @@ init_list:
     mov %ebx,%eax
 
     
-    mov list_head,%ebx
+    mov %eax,%ebx # set next to self
     call set_next
 
     mov %ecx,%ebx

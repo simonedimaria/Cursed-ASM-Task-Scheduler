@@ -8,12 +8,12 @@ BIN_DIR=bin
 
 MAIN_SRC=$(SRC_DIR)/main.s
 ITOA_SRC=$(SRC_DIR)/itoa.s
-SLL_SRC=$(SRC_DIR)/sll2.s
+SLL_SRC=$(SRC_DIR)/sll.s
 SLL_UTILS_SRC=$(SRC_DIR)/sll_utils.s
 
 MAIN_OBJ=$(OBJ_DIR)/main.o
 ITOA_OBJ=$(OBJ_DIR)/itoa.o
-SLL_OBJ=$(OBJ_DIR)/sll2.o
+SLL_OBJ=$(OBJ_DIR)/sll.o
 SLL_UTILS_OBJ=$(OBJ_DIR)/sll_utils.o
 
 TARGET=$(BIN_DIR)/main

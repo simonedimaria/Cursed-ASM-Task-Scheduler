@@ -24,13 +24,14 @@ _start:
    mov $1, %edx
    mov list_head1,%eax
    call add_to_list
-   mov $4, %ecx
+   mov $6, %ecx
    mov $3, %ebx
    mov $1, %edx
    mov list_head1,%eax
    call add_to_list
   
     
+end:
     xorl %eax, %eax
     inc %eax
     xorl %ebx, %ebx
