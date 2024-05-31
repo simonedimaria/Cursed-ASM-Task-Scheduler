@@ -21,7 +21,7 @@ TARGET=$(BIN_DIR)/main
 all: $(TARGET)
 
 $(TARGET): $(MAIN_OBJ) $(ITOA_OBJ) $(SLL_OBJ) $(SLL_UTILS_OBJ)
-	$(LD) -melf_i386  -o $@ $^
+	$(LD) -melf_i386 -o $@ $^
 
 $(MAIN_OBJ): $(MAIN_SRC)
 	$(AS) $(ASFLAGS) -o $@ $<
