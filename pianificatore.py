@@ -18,14 +18,14 @@ class Product:
         return self.priority*(time-self.expiration)
 
     def __str__(self):
-        return f"Identificativo: {self.ID}; Durata: {self.duration}; Scadenza: {self.expiration}; Priorità: {self.priority};\n"
+        return f"{self.ID},{self.duration},{self.expiration},{self.priority}\n"
 
     def from_string(string):
-        parts = string.split(';')
-        ID = int(parts[0].split(': ')[1].strip())
-        duration = int(parts[1].split(': ')[1].strip())
-        expiration = int(parts[2].split(': ')[1].strip())
-        priority = int(parts[3].split(': ')[1].strip())
+        parts = string.split(',')
+        ID = int(parts[0].strip())
+        duration = int(parts[1].strip())
+        expiration = int(parts[2].strip())
+        priority = int(parts[3].strip())
         product = Product(ID, duration, expiration, priority)
         return product
 

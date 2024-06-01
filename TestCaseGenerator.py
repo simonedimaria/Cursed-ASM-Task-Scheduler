@@ -17,7 +17,7 @@ class Product:
         return self.priority*(time-self.expiration)
 
     def __str__(self):
-        return f"Identificativo: {self.ID}; Durata: {self.duration}; Scadenza: {self.expiration}; Priorità: {self.priority};\n"
+        return f"{self.ID},{self.duration},{self.expiration},{self.priority}\n"
 MAX_ID = 127
 MAX_PRIORITY = 5
 MAX_EXPIRATION = 100
