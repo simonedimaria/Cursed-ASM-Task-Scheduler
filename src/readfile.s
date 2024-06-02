@@ -5,7 +5,8 @@ fd:
     .int 0               # File descriptor
 
 bytes_to_read:
-.int 4096 
+.int 12 
+
 buffer: .space 4096       # Spazio per il buffer di input
 buffer_atoi: .space 256       
 buffer_decode: .space 256       
@@ -171,6 +172,55 @@ decode_nodes:
     exit_decode:
         leave
         ret
+
+# buffer in ebx, bytes read in ecx, returns in eax how many bytes to go lseek
+get_broken_node:
+    pushl %ebp
+    movl %esp, %ebp
+
+    # go to last byte of buffer
+    add %ecx, %eax
+    add %ebx, %eax
+    loop_broken_node:
+        
+        # cmp with new line
+        mov (%eax), %ecx
+        cmp $10,%ecx
+        je exit_broken_node
+    
+        # set byte to 0
+        mov $0, (%eax)
+
+        dec %eax
+        jmp loop_broken_node
+    exit_broken_node:
+    sub %ebx, %eax
+    sub %ecx, %eax
+
+    leave
+    ret
+
+# how much in eax, fd in $fd
+lseek:
+    pushl %ebp
+    movl %esp, %ebp
+
+    mov %eax, %ecx
+    neg %ecx
+
+    mov $19, %eax # lseek
+    mov fd, %ebx
+    # ecx 
+    movl $1, %edx        # Whence: SEEK_CUR (1)
+    int $0x80
+
+
+
+
+    leave
+    ret
+
+
 # Legge il file riga per riga
 read_nodes:
     mov $3, %eax        # syscall read
@@ -186,6 +236,15 @@ read_nodes:
     mov %ecx, %ebx
     mov %eax, %ecx
 
+    # save bytes read
+    mov %ecx, bytes_read
+    call get_broken_node
+
+    call lseek
+    mov $buffer, %ebx
+
+    # restore bytes read
+    mov bytes_read,%ecx
     call decode_nodes
     jmp _exit1
 
