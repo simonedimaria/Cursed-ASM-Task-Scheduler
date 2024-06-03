@@ -8,13 +8,16 @@ bytes_to_read:
 .int 12 
 
 buffer: .space 4096       # Spazio per il buffer di input
+
 buffer_atoi: .space 256       
+
 buffer_decode: .space 256       
 buffer_nodes: .space 512        
 buffer_nodes_index: .long 0        
 buffer_decode_address: .long 0    
 buffer_nodes_address: .long 0    
    
+count: .long 0    
 newline: .byte 10        # Valore del simbolo di nuova linea
 lines: .int 0            # Numero di linee
 bytes_read:
@@ -133,8 +136,9 @@ decode_node:
         mov $buffer_nodes, %ebx
         add %ecx, %ebx
         mov %eax, (%ebx)
-        mov $0, buffer_nodes_index
 
+        add $4, %ecx
+        mov %ecx, buffer_nodes_index
         leave
         ret
 
@@ -161,13 +165,17 @@ decode_nodes:
         add $1, %edx
         jmp loop_lbl
     call_decode:
-        inc %edx
         movl $0, (%edx) # set last buffer value to null byte
+        inc %edx
         mov %edx, buffer_decode_address # save address
+        mov %ecx, count
          
         call decode_node
    
+        mov count, %ecx
         mov buffer_decode_address,%edx # restore address
+        
+        inc %ebx
         jmp loop_lbl
     exit_decode:
         leave
@@ -206,7 +214,6 @@ lseek:
     movl %esp, %ebp
 
     mov %eax, %ecx
-    neg %ecx
 
     mov $19, %eax # lseek
     mov fd, %ebx
@@ -223,10 +230,12 @@ lseek:
 
 # Legge il file riga per riga
 read_nodes:
+    pushl %ebp
+    movl %esp, %ebp
     mov $3, %eax        # syscall read
     mov fd, %ebx        # File descriptor
     mov $buffer, %ecx   # Buffer di input
-    mov bytes_to_read, %edx        # Lunghezza massima
+    mov $11, %edx        # Lunghezza massima
     int $0x80           # Interruzione del kernel
 
     cmp $0, %eax        # Controllo se ci sono errori o EOF
@@ -246,7 +255,7 @@ read_nodes:
     # restore bytes read
     mov bytes_read,%ecx
     call decode_nodes
-    jmp _exit1
+    jmp _exit_fun
 
 _print_line:
     # Stampa il contenuto della riga
@@ -270,3 +279,7 @@ _exit1:
     mov $1, %eax        # syscall exit
     xor %ebx, %ebx      # Codice di uscita 0
     int $0x80           # Interruzione del kernel
+_exit_fun:
+
+    leave
+    ret

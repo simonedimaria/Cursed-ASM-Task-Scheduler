@@ -13,6 +13,7 @@ _start:
 
    call init_file
    call read_nodes
+   call read_nodes
    mov %eax, list_head1
    mov $5, %ecx
    mov $10, %ebx
