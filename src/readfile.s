@@ -23,6 +23,8 @@ lines: .int 0            # Numero di linee
 bytes_read:
 .long 0
 
+more_bytes:.int 0 # 0=no 1=yes
+
 .section .bss
 
 .section .text
@@ -249,7 +251,12 @@ read_nodes:
     mov %ecx, bytes_read
     call get_broken_node
 
-    call lseek
+    test %eax,%eax
+    jz no_lseek
+    yes_lseek:
+        call lseek
+    no_lseek:
+        mov $1, more_bytes
     mov $buffer, %ebx
 
     # restore bytes read
@@ -268,6 +275,7 @@ _print_line:
 
 # Chiude il file
 _close_file:
+    mov $0, more_bytes
     mov $6, %eax        # syscall close
     mov %ebx, %ecx      # File descriptor
     int $0x80           # Interruzione del kernel

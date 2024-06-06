@@ -184,6 +184,40 @@ insert_node:
     ret
 
 
+# list in eax, priority in ebx, returns address in eax or -1 if not found
+get_node_with_priority:
+    pushl %ebp
+    movl %esp, %ebp
+    
+    call get_first
+
+    # edx has first node  
+    mov %eax, %edx    
+    mov %eax,%edx
+
+    # ecx has priority
+    mov %ebx, %ecx
+    
+    loop_get_node_with_priority:
+        call get_priority_value
+        cmp %ebx, %ecx
+        je end_get_node_with_priority
+        call get_next
+        
+        # compare with first
+        cmp %eax, %edx
+        je node_not_found
+        jmp loop_get_node_with_priority
+    node_not_found:
+        mov $-1,%ebx
+    end_get_node_with_priority:
+        mov %ebx, %eax
+    
+    leave
+    ret
+
+
+
 get_last:
     pushl %ebp
     movl %esp, %ebp

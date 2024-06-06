@@ -10,11 +10,24 @@ filename:
 # 0,000_000_110_4 seconds for neg %eax  110.4 nanoseconds
 _start:
 
-
+   mov $4, %ecx
+   mov $5, %edx
+   call init_list
+   mov %eax, list_head1
+   mov $5, %ecx
+   mov $10, %ebx
+   mov $1, %edx
+   mov list_head1,%eax 
+   
    call init_file
    call read_nodes
    call read_nodes
    mov %eax, list_head1
+   mov $1,%eax
+   mov $2,%ebx
+   mov $3,%ecx
+   mov $4,%edx
+   call init_queue
    mov $5, %ecx
    mov $10, %ebx
    mov $1, %edx
