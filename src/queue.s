@@ -8,6 +8,8 @@
     MAP_ANONYMOUS = $0x20 
 queue_head:  
     .long 0 
+queue_list_address:
+    .long 0
 id:  
     .long 0 
 duration:  
@@ -151,13 +153,60 @@ init_queue:
 
 
 # id in eax, duration in ebx, expiration in ecx,priority in edx, 
-# methond in esi; return address in eax
+# queue address in esi; return address in eax
 add_to_queue:
     pushl %ebp
     movl %esp, %ebp
 
     call product
+    mov %eax, product_address
 
+    mov %esi, %eax 
+    call get_queue_method_value
+    cmp $1, %ebx 
+    je add_to_queue_hpf
 
+    add_to_queue_ldf:
+        # switch priority and expiration
+
+        # us expiration as priority
+        mov %ecx,priority2
+        mov %edx,priority1
+        mov %edx,%ecx
+        jmp continue_add_to_queue
+    add_to_queue_hpf:
+        mov %edx,priority2
+        mov %ecx,priority2
+
+    continue_add_to_queue:
+    
+    call get_queue_list_address
+    mov %eax, queue_list_address
+
+    call get_first
+
+    mov priority1, %ebx
+    call get_node_with_priority
+
+    # check if node is found
+    cmp $-1, %eax
+
+    jne node_found
+
+    node_not_found:
+        # # if not found init a new list
+        mov priority2, %ecx
+        mov product_address, %edx
+        call init_list
+
+        mov priority1, %ecx
+        mov %eax, %edx
+        mov queue_list_address, %eax
+
+    node_found:
+        call get_
+
+    call add_to_list
+    
     leave
     ret
