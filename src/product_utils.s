@@ -11,8 +11,10 @@ SYS_BRK:
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
 
-.global product, 
-
+.global product
+.global product_from_buffer
+.global get_product_priority_value
+.global get_product_expiration_value
 
 # id in eax, duration in ebx, expiration in ecx,priority in edx, return address in eax
 product:
@@ -42,16 +44,16 @@ product_from_buffer:
     call allocate_product
     # id
     mov -16(%ecx), %edx
-    mov %edx, -16(%ebx)
+    mov %edx, -16(%eax)
     # duration
     mov -12(%ecx), %edx
-    mov %edx, -12(%ebx)
+    mov %edx, -12(%eax)
     # expiration
     mov -8(%ecx), %edx
-    mov %edx, -8(%ebx)
+    mov %edx, -8(%eax)
     # priority
     mov -4(%ecx), %edx
-    mov %edx, -4(%ebx)
+    mov %edx, -4(%eax)
 
 
     leave

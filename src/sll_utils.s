@@ -36,6 +36,8 @@ PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .global init_list
 .global compare_nodes
 .global insert_node
+.global get_node_with_priority
+
 
 .global set_last
 .global set_first
