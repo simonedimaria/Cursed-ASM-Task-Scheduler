@@ -28,6 +28,8 @@ temp:
     .long 0
 product_address: 
     .long 0
+buffer_address:
+    .long 0
 
 SYS_BRK = 45              # System call number for brk
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
@@ -111,9 +113,9 @@ init_queue:
     mov %eax, product_address
     call allocate_head
     mov %eax, queue_head
+
     mov %esi, %ebx
     call set_queue_method
-
 
     # HPF
     cmp $1,%esi
@@ -246,29 +248,58 @@ add_product_to_queue:
     jmp add_to_queue_ldf
 
 # queue address in eax, buffer in ebx
-add_products_to_list_from_buffer:
+add_products_to_queue_from_buffer:
     pushl %ebp
     movl %esp, %ebp
 
     mov %eax, queue_head
 
-    loop_add_products_to_list_from_buffer:
+    loop_add_products_to_queue_from_buffer:
         # test if first is 0 (exit)
         mov (%ebx), %eax
         cmp $0,%eax
-        je exit_add_products_to_list_from_buffer
+        je exit_add_products_to_queue_from_buffer
 
         # go to buffer address
-        add $16, (%ebx) 
+        add $16, %ebx
         call product_from_buffer
 
         # add to list
         mov %eax, %ecx
         mov queue_head, %eax
         call add_product_to_queue
-        jmp loop_add_products_to_list_from_buffer
+        jmp loop_add_products_to_queue_from_buffer
     
-    exit_add_products_to_list_from_buffer:
+    exit_add_products_to_queue_from_buffer:
 
     leave
+    ret
+
+# buffer in ebx, methon in esi, returns queue address in eax 
+init_list_from_buffer:
+    pushl %ebp
+    movl %esp, %ebp
+
+    mov %ebx, %ecx
+    # go to first value
+    mov %ebx, buffer_address
+
+    mov 4(ebx),%eax
+    mov 12(ebx)%ecx
+    mov 16(ebx)%edx
+
+    mov 8(ebx),%ebx
+
+    call init_queue
+
+
+    mov buffer_address,%ebx
+    add 16, %ebx
+
+    call add_products_to_queue_from_buffer
+
+    
+
+
+    leave 
     ret
