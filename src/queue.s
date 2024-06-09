@@ -284,11 +284,11 @@ init_list_from_buffer:
     # go to first value
     mov %ebx, buffer_address
 
-    mov 4(ebx),%eax
-    mov 12(ebx)%ecx
-    mov 16(ebx)%edx
+    mov 4(%ebx),%eax
+    mov 12(%ebx),%ecx
+    mov 16(%ebx),%edx
 
-    mov 8(ebx),%ebx
+    mov 8(%ebx),%ebx
 
     call init_queue
 
