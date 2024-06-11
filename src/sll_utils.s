@@ -16,13 +16,15 @@ priority:
     .long 0 
 next:  
     .long 0 
+prev:  
+    .long 0 
 
 testv:  
     .long 0 
 heap_location:
     .long 0 
 
-node_size:  .long 12 # 4 next, 4 priority, 4 value       
+node_size:  .long 16 # 4 prev, 4 next, 4 priority, 4 value       
 
 SYS_BRK:  
     .long 45 # System call number for brk 
@@ -95,6 +97,7 @@ init_list:
     
     mov %eax,%ebx # set next to self
     call set_next
+    call set_prev
 
     mov %ecx,%ebx
     call set_priority
@@ -168,18 +171,35 @@ compare_nodes:
 
 
 
-# eax=previus node address, ebx=address of the node to insert, edx=next node
+# eax=previus node address, ebx=address of the node to insert, ecx=next node
 insert_node:
     pushl %ebp
     movl %esp, %ebp
     
-    call set_next # points the previous node pointer to the node to insert
+    # save address
+    mov %eax, prev
+
+    # points the previous node pointer to the node to insert
+    # n1->n2 -- n3
+    call set_next 
  
 
     # points the current node pointer to the next to insert
+    # n1->n2->n3
     mov %ebx, %eax 
     mov %ecx, %ebx
-    call set_next 
+    call set_next
+
+    # ponts the old node address as prev of current node
+    # n1<->n2->n3
+    mov  prev, %ebx
+    call set_prev
+
+    # ponts the new node address as prev of next node
+    # n1<->n2<->n3
+    mov  %eax, %ebx
+    mov %ecx, %eax
+    call set_prev
 
     
     leave
@@ -266,6 +286,12 @@ get_next:
     sub      $12,%eax
     leave
     ret
+get_prev:
+    pushl %ebp
+    movl %esp, %ebp
+    sub      $16,%eax
+    leave
+    ret
 
 get_priority_value:
     pushl %ebp
@@ -285,6 +311,15 @@ get_next_value:
     pushl %ebp
     movl %esp, %ebp
     mov  -12(%eax),%ebx
+    leave
+    ret
+get_prev_value:
+    pushl %ebp
+    movl %esp, %ebp
+
+
+    mov  -16(%eax),%ebx
+
     leave
     ret
 
@@ -317,6 +352,16 @@ set_next:
     call get_next
     mov %ebx,(%eax)
     add $12,%eax
+
+    leave
+    ret
+set_prev:
+    pushl %ebp
+    movl %esp, %ebp
+
+    call get_next
+    mov %ebx,(%eax)
+    add $16,%eax
 
     leave
     ret

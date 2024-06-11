@@ -16,7 +16,8 @@ PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .global get_product_priority_value
 .global get_product_expiration_value
 
-# id in eax, duration in ebx, expiration in ecx,priority in edx, return address in eax
+# id in eax, duration in ebx, expiration in ecx,priority in edx, 
+# return address in eax
 product:
     pushl %ebp
     movl %esp, %ebp
