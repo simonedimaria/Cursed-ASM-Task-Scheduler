@@ -1,38 +1,46 @@
 # Sorted Linked List
 .section .bss
-    .lcomm buffer, 12  
+    .lcomm buffer, 12
 .section .data
     PROT_READ     =$0x1
     PROT_WRITE    =$0x2
     MAP_PRIVATE   =$0x2
-    MAP_ANONYMOUS = $0x20 
-list_head:  
-    .long 0 
-list_ptr:  
-    .long 0 
-last_list_ptr:  
-    .long 0 
-value:  
-    .long 0 
-priority:  
-    .long 0 
-next:  
-    .long 0 
-first_pass:  
-    .long 0 
+    MAP_ANONYMOUS = $0x20
+list_head:
+    .long 0
+list_ptr:
+    .long 0
+last_list_ptr:
+    .long 0
+value:
+    .long 0
+priority:
+    .long 0
+next:
+    .long 0
+first_pass:
+    .long 0
 
 first_node:
-    .long 0 
-last_node:
-    .long 0 
-node_address: 
     .long 0
-testv:  
-    .long 0 
+last_node:
+    .long 0
+node_address:
+    .long 0
+testv:
+    .long 0
 heap_location:
-    .long 0 
+    .long 0
 
-node_size:  .long 12 # 4 next, 4 priority, 4 value       
+node_index_addres:
+    .long 0
+list_buffer:
+    .space 1024
+    
+list_buffer_size:
+    .long 1024
+
+node_size:  .long 16 # 4 prev, 4 next, 4 priority, 4 value
 
 
 SYS_BRK = 45              # System call number for brk
@@ -41,16 +49,107 @@ PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .global sll2,add_to_list
 .type sll2, @function
 
+# head in eax,node index in ebx 0 if none else the address, mode in ecx=1 asc ecx=0 dec, returns buffer in edx, node in ebx or -1 if ended, 
+# buffer will have null byte at the end
+# buffer will be 4(node_value)
+list_to_buffer:
+    pushl %ebp
+    movl %esp, %ebp
+    mov %ebx, node_index_addres
+    mov %eax, list_head
+    cmp %ecx, 0
+    je list_to_buffer_dec
+
+
+    mov list_buffer,%edx
+
+    # init counter
+    mov $0,%esi
+    list_to_buffer_asc:
+        
+        call get_last_value 
+        mov %ebx, %ecx # edx is the node to compare to
+        
+        mov node_index_addres,%ebx
+        cmp %ebx,0
+        jne list_to_buffer_asc_iterate
+        
+        call get_first_value # now ebx has the node address
+        
+        list_to_buffer_asc_iterate:
+
+            cmp %ecx, %ebx
+            je end_list_to_buffer
+
+            cmp list_buffer_size, %esi
+            je end_list_to_buffer
+
+
+            # save node to buffer
+            mov %ebx, %eax
+            call get_value_value
+            mov %ebx, (%ecx)
+
+
+            # get next node
+            call get_next_value
+            inc %esi
+            add $4, %ecx
+            jmp list_to_buffer_asc_iterate
+    list_to_buffer_dec:
+        
+        call get_first_value 
+        mov %ebx, %ecx # ecx is the node to compare to
+        
+        mov node_index_addres,%ebx
+        cmp %ebx,0
+        jne list_to_buffer_asc_iterate
+        
+        call get_last_value # now ebx has the node address
+        
+        list_to_buffer_dec_iterate:
+
+            cmp %ecx, %ebx
+            je end_list_to_buffer
+
+            cmp list_buffer_size, %esi
+            je end_list_to_buffer
+
+
+            # save node to buffer
+            mov %ebx, %eax
+            call get_value_value
+            mov %ebx, (%edx)
+
+
+
+            # get next node
+            call get_prev_value
+            inc %esi
+            add $4, %edx
+
+            jmp list_to_buffer_dec_iterate
 
 
 
 
-# head address in eax, value in ebx,priority in ecx, sort type in edx 0=ASC 1=DEC, 
+
+    end_list_to_buffer:
+    mov $0, 4(%edx)
+    mov list_buffer, %edx
+
+    leave
+    ret
+
+
+
+
+# head address in eax, value in ebx,priority in ecx, sort type in edx 0=ASC 1=DEC,
 # Function to add a new node to the linked list
 add_to_list:
     pushl %ebp
     movl %esp, %ebp
-    
+
     mov %eax, list_head
     mov %ebx, value
     mov %ecx, priority
@@ -60,11 +159,11 @@ add_to_list:
     mov %ebx, first_node
     # init list_ptr
     mov %ebx, list_ptr
- 
+
     call get_last_value
     mov %ebx, last_list_ptr
     mov %ebx, last_node
-        
+
     # node allocation
     call allocate_node
     mov value, %ebx
@@ -72,12 +171,12 @@ add_to_list:
     mov %ecx, %ebx
     call set_priority
     mov %eax, node_address
-  
-      
+
+
     call loop_sort_start
 
     continue:
-    
+
     leave
     ret
 
@@ -87,7 +186,7 @@ loop_sort_start:
 
 
     mov last_list_ptr, %ecx
-    jmp loop_continue 
+    jmp loop_continue
     loop_sort:
         # check if list_ptr is the first node (end of list)
         mov last_list_ptr, %ecx
@@ -96,9 +195,9 @@ loop_sort_start:
 
         loop_continue:
             mov node_address, %edx
-            call compare_nodes # cmp ptr, node (node, ponter) 
+            call compare_nodes # cmp ptr, node (node, ponter)
 
-            jl next_node 
+            jl next_node
             jge place_node  # new node is higher then the ptr
             jmp continue
 
@@ -116,8 +215,8 @@ next_node:
 
 place_node:
 
-    # insert the new node between the last node and 
-    # the node that is lower then the new node 
+    # insert the new node between the last node and
+    # the node that is lower then the new node
     mov last_list_ptr, %eax
     mov node_address, %ebx
     mov list_ptr, %ecx
@@ -128,9 +227,9 @@ place_node:
     jne continue
     call check_if_first
     # call check_if_last
-    
+
     jmp continue
-    
+
 
 
 
@@ -188,4 +287,3 @@ check_if_last:
    leave
     ret
 
-    

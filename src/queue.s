@@ -26,7 +26,7 @@ queue_size:
     .long 8
 temp:
     .long 0
-product_address: 
+task_address: 
     .long 0
 buffer_address:
     .long 0
@@ -109,8 +109,8 @@ allocate_queue:
 init_queue:
     pushl %ebp
     movl %esp, %ebp
-    call product
-    mov %eax, product_address
+    call task
+    mov %eax, task_address
     call allocate_head
     mov %eax, queue_head
 
@@ -135,7 +135,7 @@ init_queue:
         # mov %ecx, %ecx
     continue_init:
     
-    mov product_address,%edx
+    mov task_address,%edx
 
     # init list with priority or expiration
     call init_list
@@ -160,8 +160,8 @@ add_to_queue:
     pushl %ebp
     movl %esp, %ebp
 
-    call product
-    mov %eax, product_address
+    call task
+    mov %eax, task_address
 
     mov %esi, %eax 
     call get_queue_method_value
@@ -198,7 +198,7 @@ add_to_queue:
     node_not_found:
         # # if not found init a new list
         mov priority2, %ecx
-        mov product_address, %edx
+        mov task_address, %edx
         call init_list
 
         mov priority1, %ecx
@@ -216,7 +216,7 @@ add_to_queue:
 
         # add to second list
         mov priority2, %edx
-        mov product_address,%ebx
+        mov task_address,%ebx
         call add_to_list
     
     continue_add_to_queue2:
@@ -226,18 +226,18 @@ add_to_queue:
     leave
     ret
 
-# queue address in eax, product in ecx
-add_product_to_queue:
+# queue address in eax, task in ecx
+add_task_to_queue:
     pushl %ebp
     movl %esp, %ebp
 
     mov %eax, queue_head
-    mov %ecx, product_address
+    mov %ecx, task_address
 
     mov %ecx, %eax
-    call get_product_priority_value
+    call get_task_priority_value
     mov %ebx,%edx
-    call get_product_expiration_value
+    call get_task_expiration_value
     mov %ebx,%ecx
 
     call get_queue_method_value
@@ -248,29 +248,29 @@ add_product_to_queue:
     jmp add_to_queue_ldf
 
 # queue address in eax, buffer in ebx
-add_products_to_queue_from_buffer:
+add_tasks_to_queue_from_buffer:
     pushl %ebp
     movl %esp, %ebp
 
     mov %eax, queue_head
 
-    loop_add_products_to_queue_from_buffer:
+    loop_add_tasks_to_queue_from_buffer:
         # test if first is 0 (exit)
         mov (%ebx), %eax
         cmp $0,%eax
-        je exit_add_products_to_queue_from_buffer
+        je exit_add_tasks_to_queue_from_buffer
 
         # go to buffer address
         add $16, %ebx
-        call product_from_buffer
+        call task_from_buffer
 
         # add to list
         mov %eax, %ecx
         mov queue_head, %eax
-        call add_product_to_queue
-        jmp loop_add_products_to_queue_from_buffer
+        call add_task_to_queue
+        jmp loop_add_tasks_to_queue_from_buffer
     
-    exit_add_products_to_queue_from_buffer:
+    exit_add_tasks_to_queue_from_buffer:
 
     leave
     ret
@@ -296,10 +296,7 @@ init_list_from_buffer:
     mov buffer_address,%ebx
     add 16, %ebx
 
-    call add_products_to_queue_from_buffer
-
-    
-
+    call add_tasks_to_queue_from_buffer
 
     leave 
     ret

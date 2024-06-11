@@ -54,7 +54,10 @@ PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .global get_next_value
 .global get_priority_value
 .global get_value_value
+.global get_prev_value
+.global get_prev
 .global set_value
+.global set_prev
 .global set_priority
 .global set_next
 
