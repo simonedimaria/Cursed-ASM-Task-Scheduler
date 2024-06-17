@@ -49,7 +49,8 @@ PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .global sll2,add_to_list
 .type sll2, @function
 
-# head in eax,node index in ebx 0 if none else the address, mode in ecx=1 asc ecx=0 dec, returns buffer in edx, node in ebx or -1 if ended, 
+# head in eax,node index in ebx 0 if none else the address, 
+# mode in ecx=1 asc ecx=0 dec, returns buffer in edx, node in ebx or -1 if ended, 
 # buffer will have null byte at the end
 # buffer will be 4(node_value)
 list_to_buffer:

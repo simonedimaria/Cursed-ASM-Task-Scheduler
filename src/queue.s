@@ -8,6 +8,10 @@
     MAP_ANONYMOUS = $0x20 
 queue_head:  
     .long 0 
+list1_ptr:
+    .long 0
+list2_ptr:
+    .long 0
 queue_list_address:
     .long 0
 id:  
@@ -148,6 +152,44 @@ init_queue:
     mov %eax, %ebx
     mov queue_head, %eax
     call set_queue_list_address
+
+    leave
+    ret
+
+# queue in eax, list 1 index node address in ebx 
+# (0 if start or address)
+# list 2 index node address in ecx (0 if start or address), 
+# mode in esi 0=dec, 1=asc
+# returns in edx the penalty
+queue_to_buffer:
+    pushl %ebp
+    movl %esp, %ebp
+    mov %eax, queue_head
+
+    cmp $0,%ebx
+    jne queue_to_buffer_queue_1
+
+    # #if 0 populate 
+    call get_queue_list_address # now is in ebx
+    call get_first              # eax has the second list 
+
+    mov $0,%ecx # set second list address to null
+    
+    queue_to_buffer_queue_1:
+
+        cmp $0,%ecx
+        jne queue_to_buffer_queue_2
+
+        # #if 0 populate
+        mov %ebx,%edx
+        call get_first_value # ebx has se first node address
+        mov %ebx,%ecx
+        mov %edx, %ebx
+        
+    queue_to_buffer_queue_2:
+    mov %ebx, list1_ptr
+    mov %ecx, list2_ptr
+        
 
     leave
     ret
