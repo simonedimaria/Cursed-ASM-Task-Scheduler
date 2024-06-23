@@ -16,8 +16,14 @@ queue_list_address:
     .long 0
 id:  
     .long 0 
+head_list2:
+    .long 0
+head_list1:
+    .long 0
 
 mode:
+    .long 0
+method:
     .long 0
 duration:  
     .long 0 
@@ -63,7 +69,7 @@ buffer_queue_address:
 SYS_BRK = 45              # System call number for brk
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
-.global init_queue
+.global init_queue,init_queue_from_buffer,queue_to_buffer
 .type init_queue, @function
 
 get_queue_method:
@@ -134,16 +140,16 @@ allocate_queue:
     ret
 
 # id in eax, duration in ebx, expiration in ecx,priority in edx, 
-# method in %esi 1=HPF, 2=LDF, return address in eax
+# method in %esi 0=LDF, 1=HPF, return address in eax
 init_queue:
     pushl %ebp
     movl %esp, %ebp
     call task
     mov %eax, task_address
-    call allocate_head
+    call allocate_queue
     mov %eax, queue_head
 
-    mov %esi, %ebx
+    mov method, %ebx
     call set_queue_method
 
     # HPF
@@ -154,12 +160,12 @@ init_queue:
         # switch priority and expiration
 
         # us expiration as priority
-        mov %ecx,priority2
-        mov %edx,priority1
+        mov %edx,priority2
+        mov %ecx,priority1
         mov %edx,%ecx
         jmp continue_init
     init_queue_hpf:
-        mov %edx,priority2
+        mov %edx,priority1
         mov %ecx,priority2
         # mov %ecx, %ecx
     continue_init:
@@ -197,7 +203,8 @@ queue_to_buffer:
 
     # #if 0 populate 
     call get_queue_list_address # now is in eax
-    call get_first              # eax has the second list 
+    mov (%eax),%eax
+    call get_first_value              # eax has the second list 
 
     mov $0,%ecx # set second list address to null
     
@@ -208,7 +215,12 @@ queue_to_buffer:
 
         # #if 0 populate
         mov %ebx,%edx
-        call get_first_value # ebx has se first node address
+        mov %ebx,%eax
+        call get_value # ebx has se first node address
+        mov (%eax),%eax
+        mov %eax, head_list2
+        call get_first_value             
+        
         mov %ebx,%ecx
         mov %edx, %ebx
         
@@ -216,12 +228,13 @@ queue_to_buffer:
         mov %ebx, list1_ptr
         mov %ecx, node_ptr
 
-        mov %ebx, %eax
+        mov head_list2, %eax
         mov %ecx, %ebx
 
         # eax remains the same, ebx has now the node 
         # index 
         # edx has the buffer address
+    
     call list_to_buffer
     mov %edx, buffer_nodes_address
 
@@ -254,14 +267,18 @@ queue_to_buffer:
         call get_task_id_value
         mov %ebx, task_id
         
+        push %edx
+        xor %edx, %edx
         # convert to ascii
         call itoa_to_buffer # esi has the bytes read number
         mov %esi, n_bytes_itoa
 
+        pop %edx
         # prepare copy buffet to buffer
         mov %ebx, %ecx
         mov buffer_queue_address, %ebx
 
+        mov %edx, %ecx
         call copy_buffer_to_buffer
 
         # update the address
@@ -278,14 +295,18 @@ queue_to_buffer:
         mov total_duration, %ebx
         add task_duration, %ebx
 
+        push %edx
+        xor %edx, %edx
 
         call itoa_to_buffer # esi has the bytes read number
         mov %esi, n_bytes_itoa
 
+        pop %edx
         # prepare copy buffet to buffer
         mov %ebx, %ecx
         mov buffer_queue_address, %ebx
 
+        mov %edx, %ecx
         call copy_buffer_to_buffer
 
         # update the address
@@ -316,7 +337,6 @@ queue_to_buffer:
         # go to index
         add $4, %edx
         inc %edi
-        cmp 
 
         jmp iterate_buffer
     end_iterate:
@@ -327,6 +347,7 @@ queue_to_buffer:
 
 # id in eax, duration in ebx, expiration in ecx,priority in edx, 
     # queue address in esi; returnaddress in eax
+# (creates the task)
 add_to_queue:
     pushl %ebp
     movl %esp, %ebp
@@ -354,9 +375,8 @@ add_to_queue:
     continue_add_to_queue:
     
     call get_queue_list_address
+    mov (%eax), %eax
     mov %eax, queue_list_address
-
-    call get_first
 
     mov priority1, %ebx
     call get_node_with_priority
@@ -380,19 +400,20 @@ add_to_queue:
 
     node_found:
         # eax has the address of the first list
+        mov queue_list_address, %eax
         
         # gets second list address address
         call get_value
 
 
         # add to second list
-        mov priority2, %edx
+        mov priority2, %ecx
         mov task_address,%ebx
         call add_to_list
     
     continue_add_to_queue2:
 
-    call add_to_list
+
     
     leave
     ret
@@ -411,10 +432,10 @@ add_task_to_queue:
     call get_task_expiration_value
     mov %ebx,%ecx
 
+    mov queue_head,%eax
     call get_queue_method_value
     cmp $1, %ebx 
 
-    mov queue_head, %eax
     je add_to_queue_hpf
     jmp add_to_queue_ldf
 
@@ -433,6 +454,7 @@ add_tasks_to_queue_from_buffer:
 
         # go to buffer address
         add $16, %ebx
+        
         call task_from_buffer
 
         # add to list
@@ -447,27 +469,28 @@ add_tasks_to_queue_from_buffer:
     ret
 
 # buffer in ebx, methon in esi, returns queue address in eax 
-init_list_from_buffer:
+init_queue_from_buffer:
     pushl %ebp
     movl %esp, %ebp
 
     mov %ebx, %ecx
     # go to first value
     mov %ebx, buffer_address
+    mov %esi, method
 
-    mov 4(%ebx),%eax
-    mov 12(%ebx),%ecx
-    mov 16(%ebx),%edx
+    mov (%ebx),%eax
+    mov 8(%ebx),%ecx
+    mov 12(%ebx),%edx
 
-    mov 8(%ebx),%ebx
+    mov 4(%ebx),%ebx
 
     call init_queue
 
 
     mov buffer_address,%ebx
-    add 16, %ebx
+    add $16, %ebx
 
     call add_tasks_to_queue_from_buffer
-
+    mov queue_head,%eax
     leave 
     ret
