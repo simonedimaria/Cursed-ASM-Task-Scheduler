@@ -8,12 +8,14 @@ bytes_to_read:
 .int 12 
 
 buffer: .space 4096       # Spazio per il buffer di input
+buffer_size: .long 4096       # Spazio per il buffer di input
 
 buffer_atoi: .space 256       
 
 buffer_decode: .space 256       
 buffer_nodes: .space 512        
 buffer_nodes_index: .long 0        
+buffer_read_ptr: .long 0        
 buffer_decode_address: .long 0    
 buffer_nodes_address: .long 0    
    
@@ -39,7 +41,7 @@ init_file:
     pushl %ebp
     movl %esp, %ebp
     mov $5, %eax        # syscall open
-    mov $filename, %ebx # Nome del file
+    # mov $filename, %ebx # Nome del file
     mov $0, %ecx        # Modalità di apertura (O_RDONLY)
     int $0x80           # Interruzione del kernel
 
@@ -171,11 +173,13 @@ decode_nodes:
         inc %edx
         mov %edx, buffer_decode_address # save address
         mov %ecx, count
+        mov %ebx, buffer_read_ptr
          
         call decode_node
    
         mov count, %ecx
-        mov buffer_decode_address,%edx # restore address
+        mov buffer_read_ptr,%ebx
+        mov $buffer_decode,%edx # restore address
         
         inc %ebx
         jmp loop_lbl
@@ -189,12 +193,13 @@ get_broken_node:
     movl %esp, %ebp
 
     # go to last byte of buffer
-    add %ecx, %eax
+    mov bytes_read, %eax
     add %ebx, %eax
+
     loop_broken_node:
         
         # cmp with new line
-        mov (%eax), %ecx
+        mov -1(%eax), %ecx
         cmp $10,%ecx
         je exit_broken_node
     
@@ -205,8 +210,7 @@ get_broken_node:
         jmp loop_broken_node
     exit_broken_node:
     sub %ebx, %eax
-    sub %ecx, %eax
-
+    sub bytes_read, %eax
     leave
     ret
 
@@ -237,7 +241,7 @@ read_nodes:
     mov $3, %eax        # syscall read
     mov fd, %ebx        # File descriptor
     mov $buffer, %ecx   # Buffer di input
-    mov $11, %edx        # Lunghezza massima
+    mov buffer_size, %edx        # Lunghezza massima
     int $0x80           # Interruzione del kernel
 
     cmp $0, %eax        # Controllo se ci sono errori o EOF
@@ -262,6 +266,7 @@ read_nodes:
     # restore bytes read
     mov bytes_read,%ecx
     call decode_nodes
+    mov $buffer_nodes, %ebx
     jmp _exit_fun
 
 _print_line:

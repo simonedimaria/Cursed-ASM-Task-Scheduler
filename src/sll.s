@@ -27,7 +27,7 @@ last_node:
     .long 0
 node_address:
     .long 0
-testv:
+temp:
     .long 0
 heap_location:
     .long 0
@@ -40,7 +40,7 @@ list_buffer:
 list_buffer_size:
     .long 1024
 
-node_size:  .long 16 # 4 prev, 4 next, 4 priority, 4 value
+node_size:  .long 16 # 4 prev, 4 next, 4 value, 4 priority
 
 
 SYS_BRK = 45              # System call number for brk
@@ -62,7 +62,7 @@ list_to_buffer:
     mov %eax, list_head
     cmp $0,%esi 
 
-    mov $list_buffer,%edx
+    mov $list_buffer,%ecx
 
     # init counter
     mov $0,%edi
@@ -72,7 +72,8 @@ list_to_buffer:
     list_to_buffer_asc:
         
         call get_last_value 
-        mov %ebx, %ecx # edx is the node to compare to
+        mov %ebx, %edx # edx is the node to compare to
+        mov %ebx, temp
         
         mov node_index_addres,%ebx
         cmp $0,%ebx
@@ -82,28 +83,29 @@ list_to_buffer:
         
         list_to_buffer_asc_iterate:
 
-            cmp %ecx, %ebx
-            je end_list_to_buffer_end
-
-            cmp list_buffer_size, %edi
-            je end_list_to_buffer
-
 
             # save node to buffer
             mov %ebx, %eax
             call get_value_value
             mov %ebx, (%ecx)
 
+            mov node_index_addres, %eax
 
             # get next node
             call get_next_value
+
+            cmp %edx, %ebx
+            je end_list_to_buffer_end
+
+            cmp list_buffer_size, %edi
+            je end_list_to_buffer
             inc %edi
             add $4, %ecx
             jmp list_to_buffer_asc_iterate
     list_to_buffer_dec:
         
         call get_first_value 
-        mov %ebx, %ecx # ecx is the node to compare to
+        mov %ebx, %edx # ecx is the node to compare to
         
         mov node_index_addres,%ebx
         cmp $0,%ebx
@@ -113,7 +115,7 @@ list_to_buffer:
         
         list_to_buffer_dec_iterate:
 
-            cmp %ecx, %ebx
+            cmp %edx, %ebx
             je end_list_to_buffer_end
 
             cmp list_buffer_size, %edi
@@ -126,6 +128,7 @@ list_to_buffer:
             mov %ebx, (%edx)
 
 
+            mov node_index_addres, %eax
 
             # get next node
             call get_prev_value

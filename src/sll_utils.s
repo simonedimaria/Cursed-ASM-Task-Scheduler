@@ -217,8 +217,8 @@ get_node_with_priority:
     call get_first
 
     # edx has first node  
+    mov (%eax), %eax    
     mov %eax, %edx    
-    mov %eax,%edx
 
     # ecx has priority
     mov %ebx, %ecx
@@ -228,6 +228,7 @@ get_node_with_priority:
         cmp %ebx, %ecx
         je end_get_node_with_priority
         call get_next
+        mov (%eax), %eax    
         
         # compare with first
         cmp %eax, %edx

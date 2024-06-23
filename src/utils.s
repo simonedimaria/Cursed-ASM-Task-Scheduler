@@ -56,7 +56,8 @@ print_buffer_no_length:
     leave
     ret
 
-# copy buffer in ebx to buffer in ecx (already at index),  
+# copy buffer in ebx to buffer in ecx 
+# (already at index),  
 # esi has the length of the buffer in ecx
 
 /*
@@ -66,7 +67,7 @@ source_buffer:
 dest_buffer:
     .byte 0x03, 0x04, 0x05
 
-    
+
     mov $dest_buffer, %ebx
     mov $source_buffer, %ecx
     add $2, %ecx

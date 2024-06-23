@@ -4,11 +4,18 @@
 */
 
 .section .data
+    task_id:
+        .long 0
+    task_duration:
+        .long 0
+    buffer_read_address:
+        .long 0
+    filename:
+        .ascii "test_cases.txt"  
     # constants
     list_head1:
         .long 0
-    filename:
-        .asciz "test_cases.txt"
+
 
 .section .bss
     # statically allocated variables
@@ -18,11 +25,22 @@
     
     _start:
    
+        mov $filename, %ebx
 
-        mov $4, %ecx
-        mov $5, %edx
-        call init_list
-        mov %eax, list_head1
+        call init_file
+        call read_nodes
+        # fist task
+        break_file:
+        mov %ebx,buffer_read_address
+        
+        mov $1, %esi
+        call init_queue_from_buffer
+
+        break:
+        xor %ebx, %ebx
+        xor %ecx, %ecx        
+        call queue_to_buffer
+
         # mov $5, %ecx
         # mov $10, %ebx
         # mov $1, %edx
@@ -36,31 +54,30 @@
         # mov $3,%ecx
         # mov $4,%edx
         # call init_queue
-        mov $5, %ecx
-        mov $10, %ebx
-        mov $1, %edx
-        mov list_head1,%eax
-        call add_to_list
-        mov $3, %ecx
-        mov $3, %ebx
-        mov $1, %edx
-        mov list_head1,%eax
-        call add_to_list
-        mov $3, %ecx
-        mov $3, %ebx
-        mov $1, %edx
-        mov list_head1,%eax
-        call add_to_list
-        mov $6, %ecx
-        mov $3, %ebx
-        mov $1, %edx
-        mov list_head1, %eax
-        call add_to_list
-        mov list_head1, %eax
-        mov $0, %ebx
-        mov $1, %ecx
-        call list_to_buffer
-        call print_buffer_no_length
+      #  mov $5, %ecx
+      #  mov $10, %ebx
+      #  mov $1, %edx
+      #  mov list_head1,%eax
+      #  call add_to_list
+      #  mov $3, %ecx
+      #  mov $3, %ebx
+      #  mov $1, %edx
+      #  mov list_head1,%eax
+      #  call add_to_list
+      #  mov $3, %ecx
+      #  mov $3, %ebx
+      #  mov $1, %edx
+      #  mov list_head1,%eax
+      #  call add_to_list
+      #  mov $6, %ecx
+      #  mov $3, %ebx
+      #  mov $1, %edx
+      #  mov list_head1, %eax
+      #  call add_to_list
+      #  mov list_head1, %eax
+      #  mov $0, %ebx
+      #  mov $1, %ecx
+      #  call print_buffer_no_length
 
     end:
         xorl %eax, %eax
