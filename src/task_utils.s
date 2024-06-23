@@ -16,6 +16,8 @@ PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .global task_from_buffer
 .global get_task_priority_value
 .global get_task_expiration_value
+.global get_task_id_value
+.global get_task_duration_value
 
 # id in eax, duration in ebx, expiration in ecx,priority in edx, 
 # return address in eax
