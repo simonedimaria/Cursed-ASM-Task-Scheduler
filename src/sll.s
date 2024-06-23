@@ -46,11 +46,13 @@ node_size:  .long 16 # 4 prev, 4 next, 4 priority, 4 value
 SYS_BRK = 45              # System call number for brk
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
-.global sll2,add_to_list
+.global sll2,add_to_list,list_to_buffer
 .type sll2, @function
 
+# returns a buffer with [value1,value2,...] where value in 
+# our case is an address of a node
 # head in eax,node index in ebx 0 if none else the address, 
-# mode in ecx=1 asc ecx=0 dec, returns buffer in edx, node in ebx or -1 if ended, 
+# mode in esi=1 asc esi=0 dec, returns buffer in edx, node in ebx or -1 if ended, 
 # buffer will have null byte at the end
 # buffer will be 4(node_value)
 list_to_buffer:
@@ -58,21 +60,22 @@ list_to_buffer:
     movl %esp, %ebp
     mov %ebx, node_index_addres
     mov %eax, list_head
-    cmp %ecx, 0
+    cmp $0,%esi 
+
+    mov $list_buffer,%edx
+
+    # init counter
+    mov $0,%edi
     je list_to_buffer_dec
 
 
-    mov list_buffer,%edx
-
-    # init counter
-    mov $0,%esi
     list_to_buffer_asc:
         
         call get_last_value 
         mov %ebx, %ecx # edx is the node to compare to
         
         mov node_index_addres,%ebx
-        cmp %ebx,0
+        cmp $0,%ebx
         jne list_to_buffer_asc_iterate
         
         call get_first_value # now ebx has the node address
@@ -80,9 +83,9 @@ list_to_buffer:
         list_to_buffer_asc_iterate:
 
             cmp %ecx, %ebx
-            je end_list_to_buffer
+            je end_list_to_buffer_end
 
-            cmp list_buffer_size, %esi
+            cmp list_buffer_size, %edi
             je end_list_to_buffer
 
 
@@ -94,7 +97,7 @@ list_to_buffer:
 
             # get next node
             call get_next_value
-            inc %esi
+            inc %edi
             add $4, %ecx
             jmp list_to_buffer_asc_iterate
     list_to_buffer_dec:
@@ -103,7 +106,7 @@ list_to_buffer:
         mov %ebx, %ecx # ecx is the node to compare to
         
         mov node_index_addres,%ebx
-        cmp %ebx,0
+        cmp $0,%ebx
         jne list_to_buffer_asc_iterate
         
         call get_last_value # now ebx has the node address
@@ -111,9 +114,9 @@ list_to_buffer:
         list_to_buffer_dec_iterate:
 
             cmp %ecx, %ebx
-            je end_list_to_buffer
+            je end_list_to_buffer_end
 
-            cmp list_buffer_size, %esi
+            cmp list_buffer_size, %edi
             je end_list_to_buffer
 
 
@@ -126,7 +129,7 @@ list_to_buffer:
 
             # get next node
             call get_prev_value
-            inc %esi
+            inc %edi
             add $4, %edx
 
             jmp list_to_buffer_dec_iterate
@@ -135,12 +138,17 @@ list_to_buffer:
 
 
 
-    end_list_to_buffer:
-    mov $0, 4(%edx)
-    mov list_buffer, %edx
+    end_list_to_buffer_end:
 
-    leave
-    ret
+        # make ebx 0 to signal the end of the list
+        xor %ebx, %ebx
+    end_list_to_buffer:
+        mov $0, 4(%edx)
+        mov list_head,%eax
+        mov list_buffer, %edx
+
+        leave
+        ret
 
 
 

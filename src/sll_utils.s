@@ -362,7 +362,7 @@ set_prev:
     pushl %ebp
     movl %esp, %ebp
 
-    call get_next
+    call get_prev
     mov %ebx,(%eax)
     add $16,%eax
 

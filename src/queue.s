@@ -16,6 +16,9 @@ queue_list_address:
     .long 0
 id:  
     .long 0 
+
+mode:
+    .long 0
 duration:  
     .long 0 
 expiration:  
@@ -28,11 +31,33 @@ priority2:  # priority of second list
     .long 0 
 queue_size: 
     .long 8
+task_id: 
+    .long 0
+task_duration: 
+    .long 0
+task_expiration:
+    .long 0
+task_priority: 
+    .long 0
 temp:
+    .long 0
+node_ptr:
+    .long 0
+n_bytes_itoa: 
     .long 0
 task_address: 
     .long 0
+total_duration: 
+    .long 0
+total_penalty: 
+    .long 0
 buffer_address:
+    .long 0
+buffer_nodes_address:
+    .long 0
+buffer_queue:
+    .space 1024
+buffer_queue_address:
     .long 0
 
 SYS_BRK = 45              # System call number for brk
@@ -160,25 +185,26 @@ init_queue:
 # (0 if start or address)
 # list 2 index node address in ecx (0 if start or address), 
 # mode in esi 0=dec, 1=asc
-# returns in edx the penalty
+# returns in edx the penalty, in ebx the buffer
 queue_to_buffer:
     pushl %ebp
     movl %esp, %ebp
+    mov %esi, mode
     mov %eax, queue_head
 
     cmp $0,%ebx
-    jne queue_to_buffer_queue_1
+    jne queue_to_buffer_list_1
 
     # #if 0 populate 
-    call get_queue_list_address # now is in ebx
+    call get_queue_list_address # now is in eax
     call get_first              # eax has the second list 
 
     mov $0,%ecx # set second list address to null
     
-    queue_to_buffer_queue_1:
+    queue_to_buffer_list_1:
 
         cmp $0,%ecx
-        jne queue_to_buffer_queue_2
+        jne queue_to_buffer_list_2
 
         # #if 0 populate
         mov %ebx,%edx
@@ -186,18 +212,121 @@ queue_to_buffer:
         mov %ebx,%ecx
         mov %edx, %ebx
         
-    queue_to_buffer_queue_2:
-    mov %ebx, list1_ptr
-    mov %ecx, list2_ptr
+    queue_to_buffer_list_2:
+        mov %ebx, list1_ptr
+        mov %ecx, node_ptr
+
+        mov %ebx, %eax
+        mov %ecx, %ebx
+
+        # eax remains the same, ebx has now the node 
+        # index 
+        # edx has the buffer address
+    call list_to_buffer
+    mov %edx, buffer_nodes_address
+
+    mov $buffer_queue, %esi
+    mov %esi, buffer_queue_address
+    # counter
+    xor %edi, %edi
+    iterate_buffer:
+
+
+
+        # move node address to eax
+        mov (%edx), %eax
+        test %eax, %eax
+        jz end_iterate
+
+        # get the task address in eax
+        call get_value
+        mov %eax, task_address
+
+        call get_task_duration_value
+        mov %ebx, task_duration
+        
+        call get_task_expiration_value
+        mov %ebx, task_expiration
+        
+        call get_task_priority_value
+        mov %ebx, task_priority
+
+        call get_task_id_value
+        mov %ebx, task_id
+        
+        # convert to ascii
+        call itoa_to_buffer # esi has the bytes read number
+        mov %esi, n_bytes_itoa
+
+        # prepare copy buffet to buffer
+        mov %ebx, %ecx
+        mov buffer_queue_address, %ebx
+
+        call copy_buffer_to_buffer
+
+        # update the address
+        mov %ebx, buffer_queue_address
+        mov %ebx, %edx
+
+        # comma to buffer
+        mov $58, %ebx
+        mov %ebx, (%edx)
+        # update size
+        inc buffer_queue_address
+
+
+        mov total_duration, %ebx
+        add task_duration, %ebx
+
+
+        call itoa_to_buffer # esi has the bytes read number
+        mov %esi, n_bytes_itoa
+
+        # prepare copy buffet to buffer
+        mov %ebx, %ecx
+        mov buffer_queue_address, %ebx
+
+        call copy_buffer_to_buffer
+
+        # update the address
+        mov %ebx, buffer_queue_address
+        mov %ebx, %edx
+
+        # new line to buffer
+        mov $10, %ebx
+        mov %ebx, (%edx)
+        # update size
+        inc buffer_queue_address
+
+        mov total_duration,%ebx
+        mov task_expiration,%eax
+
+        cmp %ebx, %eax
+        jge no_penalty
+        
+        mov task_priority,%edx
+        sub %ebx, %eax
+        mul %edx
+
+        add total_penalty, %eax
+        mov %eax, total_penalty
         
 
+        no_penalty:
+        # go to index
+        add $4, %edx
+        inc %edi
+        cmp 
+
+        jmp iterate_buffer
+    end_iterate:
     leave
     ret
 
 
 
 # id in eax, duration in ebx, expiration in ecx,priority in edx, 
-# queue address in esi; return address in eax
+    # queue address in esi; returnaddress in eax
 add_to_queue:
     pushl %ebp
     movl %esp, %ebp

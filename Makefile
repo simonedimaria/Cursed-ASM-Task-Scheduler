@@ -11,25 +11,35 @@ ITOA_SRC=$(SRC_DIR)/itoa.s
 SLL_SRC=$(SRC_DIR)/sll.s
 SLL_UTILS_SRC=$(SRC_DIR)/sll_utils.s
 READFILE_SRC=$(SRC_DIR)/readfile.s
-TASK_SRC=$(SRC_DIR)/TASK_utils.s
+TASK_SRC=$(SRC_DIR)/task_utils.s
 QUEUE_SRC=$(SRC_DIR)/queue.s
+UTILS_SRC=$(SRC_DIR)/utils.s
+
+
 
 MAIN_OBJ=$(OBJ_DIR)/main.o
+UTILS_OBJ=$(OBJ_DIR)/utils.o
+
 ITOA_OBJ=$(OBJ_DIR)/itoa.o
 SLL_OBJ=$(OBJ_DIR)/sll.o
 SLL_UTILS_OBJ=$(OBJ_DIR)/sll_utils.o
 READFILE_OBJ=$(OBJ_DIR)/readfile.o
-TASK_OBJ=$(OBJ_DIR)/TASK_utils.o
+TASK_OBJ=$(OBJ_DIR)/task_utils.o
 QUEUE_OBJ=$(OBJ_DIR)/queue.o
+
 
 TARGET=$(BIN_DIR)/main
 
 all: $(TARGET)
 
-$(TARGET): $(MAIN_OBJ) $(ITOA_OBJ) $(SLL_OBJ) $(SLL_UTILS_OBJ) $(READFILE_OBJ) $(TASK_OBJ) $(QUEUE_OBJ) 
+$(TARGET): $(MAIN_OBJ) $(ITOA_OBJ) $(SLL_OBJ) $(SLL_UTILS_OBJ) $(READFILE_OBJ) $(TASK_OBJ) $(UTILS_OBJ) $(QUEUE_OBJ) 
 	$(LD) -melf_i386 -o $@ $^
 
+
 $(MAIN_OBJ): $(MAIN_SRC)
+	$(AS) $(ASFLAGS) -o $@ $<
+
+$(UTILS_OBJ): $(UTILS_SRC)
 	$(AS) $(ASFLAGS) -o $@ $<
 
 $(ITOA_OBJ): $(ITOA_SRC)

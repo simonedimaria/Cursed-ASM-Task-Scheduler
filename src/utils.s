@@ -1,9 +1,8 @@
 .section .data
 
-buffer_len = . - buffer
 
 .section .text
-.global _start
+.global _start, print_buffer_no_length,copy_buffer_to_buffer
 
 # buffer in eax, lenght in ebx
 print_buffer:
@@ -38,7 +37,7 @@ find_nullbyte:
 
         incl %eax               # Increment EDI to point to the next byte
         incl %ecx               # Increment the counter
-        cmpb %ebx, %ecx         
+        cmp %ebx, %ecx         
         je found_null           
         jmp find_nullbyte_loop           # Repeat the loop
     
@@ -49,6 +48,46 @@ find_nullbyte:
 
 # buffer in eax, length ebx
 print_buffer_no_length:
+    pushl %ebp
+    movl %esp, %ebp
     call find_nullbyte
     mov %ecx, %ebx
-    call print__buffer
+    call print_buffer
+    leave
+    ret
+
+# copy buffer in ebx to buffer in ecx (already at index),  
+# esi has the length of the buffer in ecx
+
+/*
+source_buffer:
+    .byte 0x01, 0x02, 0x00, 0x00, 0x00
+
+dest_buffer:
+    .byte 0x03, 0x04, 0x05
+
+    
+    mov $dest_buffer, %ebx
+    mov $source_buffer, %ecx
+    add $2, %ecx
+    mov $3, %esi
+    call copy_buffer_to_buffer
+*/
+copy_buffer_to_buffer:
+    pushl %ebp
+    movl %esp, %ebp
+
+
+    # Copy loop
+    copy_loop:
+        mov (%ebx),%al
+        mov %al, (%ecx)
+        inc %ecx
+        inc %ebx
+        dec %esi
+        test %esi,%esi
+
+        jnz copy_loop                # Loop if not zero
+
+    leave
+    ret 
