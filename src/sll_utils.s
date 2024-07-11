@@ -60,6 +60,7 @@ PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .global set_prev
 .global set_priority
 .global set_next
+.global set_next_node
 
 .type sll_utils, @function
 
@@ -226,7 +227,7 @@ get_node_with_priority:
     loop_get_node_with_priority:
         call get_priority_value
         cmp %ebx, %ecx
-        je end_get_node_with_priority
+        je node_found
         call get_next
         mov (%eax), %eax    
         
@@ -235,9 +236,10 @@ get_node_with_priority:
         je node_not_found
         jmp loop_get_node_with_priority
     node_not_found:
-        mov $-1,%ebx
+        mov $-1,%eax
+        jmp end_get_node_with_priority
+    node_found:
     end_get_node_with_priority:
-        mov %ebx, %eax
     
     leave
     ret
@@ -366,6 +368,26 @@ set_prev:
     call get_prev
     mov %ebx,(%eax)
     add $16,%eax
+
+    leave
+    ret
+
+# like set_next but also set_prev
+# eax->ebx
+set_next_node:
+    pushl %ebp
+    movl %esp, %ebp
+    push %eax
+    push %ebx
+    call set_next
+
+    # in reverse
+    pop %eax
+    pop %ebx
+
+    call set_prev
+
+
 
     leave
     ret

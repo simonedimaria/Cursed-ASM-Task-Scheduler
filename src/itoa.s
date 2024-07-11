@@ -44,12 +44,12 @@ stampa:
     popw %bx
     jmp stampa
 fine_itoa:
-    movb $10, char
-    movl $4, %eax
-    movl $1, %ebx
-    leal char, %ecx
-    mov $1, %edx
-    int $0x80
+    # movb $10, char
+    # movl $4, %eax
+    # movl $1, %ebx
+    # leal char, %ecx
+    # mov $1, %edx
+    # int $0x80
     ret
 
 # given a value returns a buffer with ascii representation,

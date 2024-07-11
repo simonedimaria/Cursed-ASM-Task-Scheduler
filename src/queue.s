@@ -8,9 +8,21 @@
     MAP_ANONYMOUS = $0x20 
 queue_head:  
     .long 0 
+list1:
+    .long 0
 list1_ptr:
     .long 0
+list1_last:
+    .long 0
+list1_first:
+    .long 0
 list2_ptr:
+    .long 0
+list2:
+    .long 0
+list2_first:
+    .long 0
+list2_last_node:
     .long 0
 queue_list_address:
     .long 0
@@ -69,7 +81,7 @@ buffer_queue_address:
 SYS_BRK = 45              # System call number for brk
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
-.global init_queue,init_queue_from_buffer,queue_to_buffer
+.global init_queue,init_queue_from_buffer,queue_to_buffer,queue_to_list
 .type init_queue, @function
 
 get_queue_method:
@@ -122,6 +134,7 @@ set_queue_method:
     add $8, %eax             
 
     leave
+    ret
 allocate_queue:
     pushl %ebp
     movl %esp, %ebp
@@ -151,6 +164,7 @@ init_queue:
 
     mov method, %ebx
     call set_queue_method
+    mov method, %esi
 
     # HPF
     cmp $1,%esi
@@ -186,6 +200,94 @@ init_queue:
 
     leave
     ret
+
+# IRREVERSABLE PROCESS
+# transforms a queue into a single linked list
+# queue in eax,
+# mode in esi 1=HPF, 0=LDF
+# returns in eax the list
+queue_to_list:
+    pushl %ebp
+    movl %esp, %ebp
+
+
+    mov %esi, mode
+    mov %eax, queue_head
+
+    # test %esi, %esi
+    # jz queue_to_list_ldf
+    # queue_to_list:
+
+        # get the first list address
+        call get_queue_list_address
+        mov (%eax), %eax
+        mov %eax, list1
+        
+        
+        # get the last element  (dec)
+        call get_first_value
+        mov %ebx, list1_last
+        
+
+        # get the first element (dec) 
+        call get_last_value
+        mov %ebx, list1_ptr
+        mov %ebx, %eax
+
+
+        # get the second list address
+        call get_value
+        mov (%eax), %eax
+        mov %eax, list2_ptr
+        
+        mov %eax, list2
+
+        # get the last node of the second list
+        call get_last_value
+        mov %ebx, list2_last_node
+
+        # in list1_ptr there is the first
+        # list node address
+
+        # in list2_ptr there is the second
+        # list node address 
+
+        queue_to_list_loop:
+            mov list1_ptr,%eax
+
+            # get next list1
+            call get_prev 
+            mov (%eax), %eax
+            mov %eax, temp
+
+            # get list2 address
+            call get_value
+            mov (%eax), %ebx
+            mov list2_ptr,%eax
+            # now i have in ebx the new list and in eax 
+            # the previous list
+
+            call merge_lists
+
+
+            # chek if last list
+            mov list1_last, %eax
+            cmp list1_ptr, %eax
+
+            je queue_to_list_exit
+
+            mov temp, %eax
+            mov %eax, list1_ptr
+
+            jmp queue_to_list_loop
+
+    queue_to_list_exit:
+    mov list2, %eax
+
+    leave 
+    ret
+
+
 
 # queue in eax, list 1 index node address in ebx 
 # (0 if start or address)
@@ -364,13 +466,13 @@ add_to_queue:
         # switch priority and expiration
 
         # Use  expiration as priority
-        mov %ecx,priority2
-        mov %edx,priority1
+        mov %edx,priority2
+        mov %ecx,priority1
         mov %edx,%ecx
         jmp continue_add_to_queue
     add_to_queue_hpf:
-        mov %ecx,priority1
-        mov %edx,priority2
+        mov %edx,priority1
+        mov %ecx,priority2
 
     continue_add_to_queue:
     
@@ -399,12 +501,9 @@ add_to_queue:
         jmp continue_add_to_queue2
 
     node_found:
-        # eax has the address of the first list
-        mov queue_list_address, %eax
-        
-        # gets second list address address
+        # eax has the list1 address of the list2 
         call get_value
-
+        mov (%eax),%eax
 
         # add to second list
         mov priority2, %ecx
@@ -455,12 +554,18 @@ add_tasks_to_queue_from_buffer:
         # go to buffer address
         add $16, %ebx
         
+        # save to buffer address
+        push %ebx
+        
         call task_from_buffer
 
         # add to list
         mov %eax, %ecx
         mov queue_head, %eax
         call add_task_to_queue
+
+        # restore the buffer address
+        pop %ebx
         jmp loop_add_tasks_to_queue_from_buffer
     
     exit_add_tasks_to_queue_from_buffer:
@@ -468,7 +573,7 @@ add_tasks_to_queue_from_buffer:
     leave
     ret
 
-# buffer in ebx, methon in esi, returns queue address in eax 
+# buffer in ebx, method in esi, returns queue address in eax 
 init_queue_from_buffer:
     pushl %ebp
     movl %esp, %ebp

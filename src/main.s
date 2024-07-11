@@ -36,10 +36,16 @@
         mov $1, %esi
         call init_queue_from_buffer
 
-        break:
         xor %ebx, %ebx
-        xor %ecx, %ecx        
-        call queue_to_buffer
+        xor %ecx, %ecx    
+        break2:    
+        mov $1,%esi
+        call queue_to_list
+        xor %ebx, %ebx
+        mov $1,%esi
+        break:
+        call print_list
+        break3:
 
         # mov $5, %ecx
         # mov $10, %ebx

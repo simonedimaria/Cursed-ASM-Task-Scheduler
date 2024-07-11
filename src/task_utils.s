@@ -2,7 +2,7 @@
 .section .bss
 .section .data
 
-size:  .long 16 # 4 id, 4 priority, 4 expiration, 4 duration       
+size:  .long 16 # 4 id, 4 duration, 4 expiration, 4 priority       
 id:.long 0
 duration:.long 0
 temp:.long 0
@@ -119,7 +119,7 @@ get_task_duration:
     pushl %ebp
     movl %esp, %ebp
 
-    sub      $12,%eax
+    sub $12,%eax
 
 
     leave

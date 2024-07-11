@@ -1,6 +1,6 @@
 AS=as
-ASFLAGS=--32 -gstabs
-LD=ld
+ASFLAGS=--32 -gstabs -g -gstabs+
+LD=ld -O --relax
 
 SRC_DIR=src
 OBJ_DIR=obj

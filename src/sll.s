@@ -6,9 +6,39 @@
     PROT_WRITE    =$0x2
     MAP_PRIVATE   =$0x2
     MAP_ANONYMOUS = $0x20
+task_id:
+    .long 0
+task:
+    .long 0
+penalty:
+    .long 0
+expiration:
+    .long 0
+duration:
+    .long 0
+node_ptr:
+    .long 0
 list_head:
     .long 0
 list_ptr:
+    .long 0
+list1_ptr:
+    .long 0
+list2_ptr:
+    .long 0
+list2:
+    .long 0
+list1:
+    .long 0
+list:
+    .long 0
+list1_last:
+    .long 0
+list1_first:
+    .long 0
+list2_first:
+    .long 0
+list2_last:
     .long 0
 last_list_ptr:
     .long 0
@@ -21,6 +51,10 @@ next:
 first_pass:
     .long 0
 
+total_duration:
+    .long 0
+total_penalty:
+    .long 0
 first_node:
     .long 0
 last_node:
@@ -39,20 +73,27 @@ list_buffer:
     
 list_buffer_size:
     .long 1024
-
+colon:
+    .ascii ":"
+new_line:
+    .ascii "\n"
+conclusione_msg:
+    .asciz "Conclusione: "
+penalty_msg:
+    .asciz "Penalty: "
 node_size:  .long 16 # 4 prev, 4 next, 4 value, 4 priority
 
 
 SYS_BRK = 45              # System call number for brk
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
-.global sll2,add_to_list,list_to_buffer
+.global sll2,add_to_list,list_to_buffer, merge_lists, print_list
 .type sll2, @function
 
 # returns a buffer with [value1,value2,...] where value in 
 # our case is an address of a node
 # head in eax,node index in ebx 0 if none else the address, 
-# mode in esi=1 asc esi=0 dec, returns buffer in edx, node in ebx or -1 if ended, 
+# mode in esi=1 asc(hpf) esi=0 dec (ldf), returns buffer in edx, node in ebx or -1 if ended, 
 # buffer will have null byte at the end
 # buffer will be 4(node_value)
 list_to_buffer:
@@ -153,8 +194,129 @@ list_to_buffer:
         leave
         ret
 
+# prints directly the list with id:time, 
+# also prints final message
+# list in eax, method in esi, esi=1 straight(hpf) 
+# esi=0 reverse(ldf)
+
+print_list:
+    pushl %ebp
+    movl %esp, %ebp
+    mov %eax, list
+
+    call get_last_value
+    mov %ebx, last_node
+    
+    call get_first_value
+    mov %ebx, first_node
+    mov %ebx, node_ptr
+    mov %ebx, %eax
+
+    test %esi, %esi
+    jz print_list_reverse_init
+    jmp print_list_straight
+
+    print_list_reverse_init:
+    mov last_node, %eax
+    jmp print_list_loop
+    print_list_straight_init:
+    mov first_node, %eax
+
+    print_list_loop:
+        call get_value_value
+        mov %ebx, task
+        mov %ebx, %eax
+        call get_task_id_value
+        mov %ebx, task_id
+
+        mov task, %eax
+
+        call get_task_duration_value
+        mov %ebx, priority
+
+        call get_task_expiration_value
+        mov %ebx, expiration
+
+        call get_task_duration_value
+        mov %ebx, duration
+
+        mov total_duration, %eax
+        add %ebx, %eax # time after task completition
+        
+        mov expiration, %ebx
+        subl %eax, %ebx     # res = expiration - final_time
+
+        js not_expired
+        expired:
+            imull priority, %ebx # priority * how many ticks expired
+
+            add total_penalty, %ebx
+            mov %ebx, total_penalty
+        not_expired:
+            mov duration, %eax
+            add total_duration, %eax
+            mov %eax, total_duration
+
+        
+        mov task_id, %eax
+        call itoa
+        mov $colon, %eax
+        mov $1, %ebx
+        call print_buffer
+
+        mov total_duration, %eax
+        call itoa
+        mov $new_line, %eax
+        mov $1, %ebx
+        call print_buffer
 
 
+    test %esi, %esi
+    jz print_list_reverse
+    jmp print_list_straight
+    print_list_reverse:
+        mov first_node, %eax
+        cmp node_ptr, %eax
+        je print_list_exit
+
+        mov node_ptr, %eax
+        call get_prev_value
+        mov %ebx, %eax
+        mov %ebx, node_ptr
+        jmp print_list_loop
+    print_list_straight:
+        mov last_node, %eax
+        cmp node_ptr, %eax
+        je print_list_exit
+
+        mov node_ptr, %eax
+        call get_next_value
+        mov %ebx, %eax
+        mov %ebx, node_ptr
+        
+        jmp print_list_loop
+        
+
+
+    print_list_exit:
+    mov $conclusione_msg, %eax
+    call print_buffer_no_length
+
+    mov total_duration, %eax
+    call itoa
+    mov $new_line, %eax
+    mov $1, %ebx
+    call print_buffer
+
+    mov $penalty_msg, %eax
+    call print_buffer_no_length
+    mov total_penalty, %eax
+    call itoa
+    mov $new_line, %eax
+    mov $1, %ebx
+    call print_buffer
+    leave
+    ret
 
 # head address in eax, value in ebx,priority in ecx, sort type in edx 0=ASC 1=DEC,
 # Function to add a new node to the linked list
@@ -260,6 +422,48 @@ not_found:
     # call check_if_first
     jmp continue
 
+# list1 in eax, list2 in ebx
+# list1.last.next=list2.first
+# list2.first.prev=list1.last
+merge_lists:
+    pushl %ebp
+    movl %esp, %ebp
+
+    mov %eax, list1
+    mov %ebx, list2
+
+    call get_last_value
+    mov %ebx, list1_last
+
+    call get_first_value
+    mov %ebx, list1_first
+
+
+    mov list2,%eax
+    call get_last_value
+    mov %ebx, list2_last
+
+    call get_first_value
+    mov %ebx, list2_first
+
+
+    # set circularly the next node
+    mov list1_last, %eax
+    mov list2_first, %ebx
+
+    call set_next_node
+
+    mov list2_last, %eax
+    mov list1_first, %ebx
+
+    call set_next_node
+
+    mov list1,%eax
+    mov list2_last, %ebx
+    call set_last
+
+    leave
+    ret
 
 check_if_first:
     pushl %ebp

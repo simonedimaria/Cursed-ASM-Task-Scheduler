@@ -2,7 +2,7 @@
 
 
 .section .text
-.global _start, print_buffer_no_length,copy_buffer_to_buffer
+.global _start, print_buffer_no_length,copy_buffer_to_buffer, print_buffer
 
 # buffer in eax, lenght in ebx
 print_buffer:
@@ -16,10 +16,6 @@ print_buffer:
     movl $1, %ebx        # file descriptor 1 (stdout)
     int $0x80            # make the syscall
 
-    # Exit the program
-    movl $1, %eax        # syscall number for sys_exit
-    xorl %ebx, %ebx      # exit status 0
-    int $0x80            # make the syscall
 
     leave
     ret
@@ -31,14 +27,14 @@ print_buffer:
 find_nullbyte:
     pushl %ebp
     movl %esp, %ebp
+    xor %ecx, %ecx
     find_nullbyte_loop:
         cmpb $0, (%eax)         # Compare the current byte with null byte (0)
         je found_null           # If it is null, jump to found_null
 
         incl %eax               # Increment EDI to point to the next byte
         incl %ecx               # Increment the counter
-        cmp %ebx, %ecx         
-        je found_null           
+     
         jmp find_nullbyte_loop           # Repeat the loop
     
     found_null:
@@ -50,8 +46,10 @@ find_nullbyte:
 print_buffer_no_length:
     pushl %ebp
     movl %esp, %ebp
+    push %eax
     call find_nullbyte
     mov %ecx, %ebx
+    pop %eax
     call print_buffer
     leave
     ret
