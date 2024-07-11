@@ -14,8 +14,8 @@ class Product:
         self.priority = priority
 
     def calculatePenalty(self, time):
-        if (time<=self.expiration): return 0
-        return self.priority*(time-self.expiration)
+        if (time>=self.expiration): return 0
+        return self.priority*(self.expiration-time)
 
     def __str__(self):
         return f"{self.ID},{self.duration},{self.expiration},{self.priority}\n"
@@ -79,8 +79,8 @@ def simulate(products):
     for idx in products:
         queue=products[idx]
         for item in queue:
-            simulated.append(f"{item.ID}:{time}")
             time+=item.duration
+            simulated.append(f"{item.ID}:{time}")
             penalty+=item.calculatePenalty(time)
     return penalty, simulated, time
 

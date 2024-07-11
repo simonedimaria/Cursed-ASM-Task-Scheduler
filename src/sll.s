@@ -214,7 +214,7 @@ print_list:
 
     test %esi, %esi
     jz print_list_reverse_init
-    jmp print_list_straight
+    jmp print_list_straight_init
 
     print_list_reverse_init:
     mov last_node, %eax
@@ -231,7 +231,7 @@ print_list:
 
         mov task, %eax
 
-        call get_task_duration_value
+        call get_task_priority_value
         mov %ebx, priority
 
         call get_task_expiration_value
