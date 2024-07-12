@@ -6,6 +6,8 @@
     PROT_WRITE    =$0x2
     MAP_PRIVATE   =$0x2
     MAP_ANONYMOUS = $0x20
+is_first:
+    .long 0 # 1=y
 task_id:
     .long 0
 task:
@@ -266,6 +268,20 @@ print_list:
 
         mov total_duration, %eax
         call itoa
+
+
+        mov $colon, %eax
+        mov $1, %ebx
+        call print_buffer
+        mov expiration, %eax
+        call itoa
+
+        mov $colon, %eax
+        mov $1, %ebx
+        call print_buffer
+        mov priority, %eax
+        call itoa
+
         mov $new_line, %eax
         mov $1, %ebx
         call print_buffer
@@ -318,12 +334,12 @@ print_list:
     leave
     ret
 
-# head address in eax, value in ebx,priority in ecx, sort type in edx 0=ASC 1=DEC,
+# head address in eax, value in ebx,priority in ecx, 
 # Function to add a new node to the linked list
 add_to_list:
     pushl %ebp
     movl %esp, %ebp
-
+    mov $1, is_first
     mov %eax, list_head
     mov %ebx, value
     mov %ecx, priority
@@ -335,7 +351,8 @@ add_to_list:
     mov %ebx, list_ptr
 
     call get_last_value
-    mov %ebx, last_list_ptr
+    mov %ebx, last_list_ptr     
+
     mov %ebx, last_node
 
     # node allocation
@@ -347,81 +364,118 @@ add_to_list:
     mov %eax, node_address
 
 
-    call loop_sort_start
+    jmp loop_sort
 
     continue:
 
     leave
     ret
 
-    # check if sort by asc or dec
-loop_sort_start:
-# this will run only once to check if the node should be the last
-
-
-    mov last_list_ptr, %ecx
-    jmp loop_continue
     loop_sort:
-        # check if list_ptr is the first node (end of list)
-        mov last_list_ptr, %ecx
-        cmp first_node, %ecx
-        je not_found
 
-        loop_continue:
-            mov node_address, %edx
-            call compare_nodes # cmp ptr, node (node, ponter)
-
-            jl next_node
-            jge place_node  # new node is higher then the ptr
-            jmp continue
+        mov list_ptr,%ecx
+        mov node_address, %edx
+        call compare_nodes
 
 
-next_node:
-    # remember the pointer
-    mov list_ptr, %eax
-    mov %eax, last_list_ptr
+        jl place_node  # new node is higher then the ptr
+        mov $0, is_first
+        
+        mov list_ptr, %eax 
+        mov %eax, last_list_ptr
+        
 
-    # update list_ptr to the new value
-    call get_next_value
-    mov %ebx, list_ptr
+        call get_next_value
+        mov %ebx, list_ptr
+        
+        cmp first_node, %ebx # last_node, list_ptr
+        jne loop_sort
 
-    jmp loop_sort
+        mov list_head, %eax
+        mov node_address, %ebx
+        call set_last
+
+        jmp place_node
 
 place_node:
 
     # insert the new node between the last node and
     # the node that is lower then the new node
+    mov is_first, %ebx
+    test %ebx, %ebx
+    jz not_first
+    
+    mov list_head, %eax
+
+    mov node_address, %ebx
+    call set_first
+    
+    not_first:
+
     mov last_list_ptr, %eax
     mov node_address, %ebx
     mov list_ptr, %ecx
     call insert_node
 
 
-    call check_if_last
-    jne continue
-    call check_if_first
-    # call check_if_last
-
     jmp continue
+    
 
 
-
-
-not_found:
-    mov last_node, %eax
-    mov node_address, %ebx
-    mov first_node, %ecx
-    call insert_node
-
-    # uses ebx from before
-    mov node_address, %ebx
-    mov list_head, %eax
-    call set_first
 
     # call check_if_last
+    # jne continue
     # call check_if_first
-    jmp continue
+    # call check_if_last
+    
 
+    jmp continue
+# 
+#     loop_sort:
+#         # check if list_ptr is the first node (end of list)
+#         mov list_ptr, %ecx
+#         cmp first_node, %ecx
+#         je not_found
+# 
+#         loop_continue:
+#             mov node_address, %edx
+#             call compare_nodes # cmp ptr, node (node, pointer)
+# 
+#             jl next_node
+#             jge place_node  # new node is higher then the ptr
+#             jmp continue
+# 
+# 
+# next_node:
+#     # remember the pointer
+#     mov list_ptr, %eax
+#     mov %eax, last_list_ptr
+# 
+#     # update list_ptr to the new value
+#     call get_next_value
+#     mov %ebx, list_ptr
+# 
+#     jmp loop_sort
+# 
+
+
+
+
+# not_found:
+#     mov last_node, %eax
+#     mov node_address, %ebx
+#     mov first_node, %ecx
+#     call insert_node
+# 
+#     # uses ebx from before
+#     mov node_address, %ebx
+#     mov list_head, %eax
+#     call set_first
+# 
+#     # call check_if_last
+#     # call check_if_first
+#     jmp continue
+# 
 # list1 in eax, list2 in ebx
 # list1.last.next=list2.first
 # list2.first.prev=list1.last
@@ -471,9 +525,9 @@ check_if_first:
 
 
 
-    mov last_list_ptr, %ecx
+    mov list_ptr, %ecx
     cmp first_node, %ecx # compare first_node with the ptr
-    jne continue
+    jne check_if_first_exit
 
     # update first
     mov list_head, %eax
@@ -481,7 +535,8 @@ check_if_first:
     call set_first
     mov %ebx,first_node
 
-   leave
+    check_if_first_exit:
+    leave
     ret
 
 check_if_last:
@@ -490,16 +545,16 @@ check_if_last:
 
 
 
-    mov last_list_ptr, %ecx
+    mov list_ptr, %ecx
     cmp last_node, %ecx # compare first_node with the ptr
-    jne continue
+    jne check_if_last_exit
 
     # update first
     mov list_head, %eax
     mov node_address, %ebx
     call set_last
     mov %ebx,last_node
-
-   leave
+    check_if_last_exit:
+    leave
     ret
 

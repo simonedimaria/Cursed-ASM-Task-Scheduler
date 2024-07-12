@@ -11,7 +11,7 @@
     buffer_read_address:
         .long 0
     filename:
-        .ascii "test_cases.txt"  
+        .ascii "test_cases-copy.txt"  
     # constants
     list_head1:
         .long 0

@@ -80,7 +80,7 @@ def simulate(products):
         queue=products[idx]
         for item in queue:
             time+=item.duration
-            simulated.append(f"{item.ID}:{time}")
+            simulated.append(f"{item.ID}:{time}:{item.expiration}:{item.priority}")
             penalty+=item.calculatePenalty(time)
     return penalty, simulated, time
 

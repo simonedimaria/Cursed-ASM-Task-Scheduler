@@ -7,8 +7,8 @@ fd:
 bytes_to_read:
 .int 12 
 
-buffer: .space 4096       # Spazio per il buffer di input
-buffer_size: .long 4096       # Spazio per il buffer di input
+buffer: .space 40960       # Spazio per il buffer di input
+buffer_size: .long 40960       # Spazio per il buffer di input
 
 buffer_atoi: .space 256       
 
