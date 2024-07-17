@@ -7,13 +7,13 @@ fd:
 bytes_to_read:
 .int 12 
 
-buffer: .space 40960       # Spazio per il buffer di input
-buffer_size: .long 40960       # Spazio per il buffer di input
+buffer: .space 1024       # Spazio per il buffer di input
+buffer_size: .long 1024       # Spazio per il buffer di input
 
 buffer_atoi: .space 256       
 
 buffer_decode: .space 256       
-buffer_nodes: .space 512        
+buffer_nodes: .space 2048        
 buffer_nodes_index: .long 0        
 buffer_read_ptr: .long 0        
 buffer_decode_address: .long 0    
