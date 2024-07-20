@@ -211,7 +211,6 @@ print_list:
     
     call get_first_value
     mov %ebx, first_node
-    mov %ebx, node_ptr
     mov %ebx, %eax
 
     test %esi, %esi
@@ -220,9 +219,11 @@ print_list:
 
     print_list_reverse_init:
     mov last_node, %eax
+    mov %eax, node_ptr
     jmp print_list_loop
     print_list_straight_init:
     mov first_node, %eax
+    mov %eax, node_ptr
 
     print_list_loop:
         call get_value_value

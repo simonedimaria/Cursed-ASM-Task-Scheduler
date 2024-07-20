@@ -11,11 +11,13 @@
     buffer_read_address:
         .long 0
     filename:
-        .ascii "test_cases-copy.txt"  
+        .ascii "test_cases.txt"  
     # constants
     list_head1:
         .long 0
-
+    bytes_read:
+        .long 0
+    queue_head:
 
 .section .bss
     # statically allocated variables
@@ -29,20 +31,33 @@
 
         call init_file
         call read_nodes
-        # fist task
-        break_file:
+        mov %ecx, bytes_read
         mov %ebx,buffer_read_address
         
-        mov $1, %esi
+        mov $0, %esi
         call init_queue_from_buffer
+        mov %eax, queue_head
+
+        mov bytes_read, %ecx
+        test %ecx, %ecx
+        jz finish_read
+        read_more:
+            call read_nodes
+            test %ecx, %ecx
+            jz finish_read
+
+            mov queue_head, %eax
+            call add_tasks_to_queue_from_buffer
+            jmp read_more
+        finish_read:
 
         xor %ebx, %ebx
         xor %ecx, %ecx    
         break2:    
-        mov $1,%esi
+        mov $0,%esi
         call queue_to_list
         xor %ebx, %ebx
-        mov $1,%esi
+        mov $0,%esi
         break:
         call print_list
         break3:

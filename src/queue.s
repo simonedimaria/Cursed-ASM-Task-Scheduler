@@ -81,7 +81,7 @@ buffer_queue_address:
 SYS_BRK = 45              # System call number for brk
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
-.global init_queue,init_queue_from_buffer,queue_to_buffer,queue_to_list
+.global init_queue,add_tasks_to_queue_from_buffer,init_queue_from_buffer,queue_to_buffer,queue_to_list
 .type init_queue, @function
 
 get_queue_method:

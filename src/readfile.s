@@ -7,8 +7,8 @@ fd:
 bytes_to_read:
 .int 12 
 
-buffer: .space 1024       # Spazio per il buffer di input
-buffer_size: .long 1024       # Spazio per il buffer di input
+buffer: .space 2048       # Spazio per il buffer di input
+buffer_size: .long 2048       # Spazio per il buffer di input
 
 buffer_atoi: .space 256       
 
@@ -234,7 +234,7 @@ lseek:
     ret
 
 
-# Legge il file riga per riga
+# returns files read in ecx and buffer in eax
 read_nodes:
     pushl %ebp
     movl %esp, %ebp
