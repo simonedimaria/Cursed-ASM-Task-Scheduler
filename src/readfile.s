@@ -4,16 +4,16 @@ filename:
 fd:
     .int 0               # File descriptor
 
-bytes_to_read:
-.int 12 
+
 
 buffer: .space 2048       # Spazio per il buffer di input
-buffer_size: .long 2048       # Spazio per il buffer di input
+buffer_size: .long 2048      # Spazio per il buffer di input
+buffer_end: .long 0       # Spazio per il buffer di input
 
 buffer_atoi: .space 256       
 
 buffer_decode: .space 256       
-buffer_nodes: .space 2048        
+buffer_nodes: .space 4096        
 buffer_nodes_index: .long 0        
 buffer_read_ptr: .long 0        
 buffer_decode_address: .long 0    
@@ -31,7 +31,6 @@ more_bytes:.int 0 # 0=no 1=yes
 
 .section .text
     .globl _start
-    .globl atoi
     .globl init_file
     .globl read_nodes
 
@@ -53,29 +52,6 @@ init_file:
     leave
     ret
 
-# buffer address in %ebx result in eax
-atoi:
-    pushl %ebp
-    movl %esp, %ebp
-    xor %eax, %eax
-    xor %ecx, %ecx # sum
-    xor %edx, %edx
-    atoi_loop:
-        mov (%ebx), %dl 
-        
-        # test if last byte
-        testb %dl, %dl
-        jz end_loop
-        imul $10,%eax
-        sub $48, %edx
-        add %edx, %eax
-        
-        # update buffer position
-        inc %ebx
-        jmp atoi_loop
-    end_loop:
-    leave
-    ret
 
 decode_node:
    pushl %ebp
@@ -152,8 +128,12 @@ decode_nodes:
     movl %esp, %ebp
     xor %eax, %eax
     mov $buffer_decode, %edx
+    mov %ebx, %esi
+    add buffer_size, %esi
     loop_lbl:
-    
+        cmp %esi, %ebx
+        je exit_decode
+        
         mov (%ebx),%al
         cmpb $10, %al
         
@@ -162,11 +142,14 @@ decode_nodes:
         
         # exit if last byte
         test %ecx, %ecx
-        jz exit_decode 
+        jz exit_decode
 
-        sub $1,%ecx
-        add $1, %ebx
-        add $1, %edx
+        
+
+
+        dec %ecx
+        inc %ebx
+        inc %edx
         jmp loop_lbl
     call_decode:
         movl $0, (%edx) # set last buffer value to null byte
@@ -187,7 +170,7 @@ decode_nodes:
         leave
         ret
 
-# buffer in ebx, bytes read in ecx, returns in eax how many bytes to go lseek
+# buffer in ebx, , returns in eax how many bytes to go lseek
 get_broken_node:
     pushl %ebp
     movl %esp, %ebp
@@ -196,15 +179,20 @@ get_broken_node:
     mov bytes_read, %eax
     add %ebx, %eax
 
+    xor %ecx, %ecx
     loop_broken_node:
-        
+        # check if arrived at the start of the buffer
+
+        cmp %eax, %ebx
+        je exit_broken_node
+
         # cmp with new line
-        mov -1(%eax), %ecx
+        mov -1(%eax), %cl
         cmp $10,%ecx
         je exit_broken_node
     
         # set byte to 0
-        mov $0, (%eax)
+        movb $0, (%eax)
 
         dec %eax
         jmp loop_broken_node

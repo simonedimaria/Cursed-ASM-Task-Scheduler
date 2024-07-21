@@ -1,21 +1,34 @@
 .section .data
-
-
+menu_msg:
+    .asciz "Inserisci il valore appropriato per selezionare l'algoritmo desiderato:\n1 per utilizzare l'algoritmo EDF (Earliest Deadline First).\n2 per utilizzare l'algoritmo HPF (Highest Priority First).\n:"
+menu_msg_length:
+    .long 193
+input:
+    .space 2
+fd:
+    .long 1
 .section .text
-.global _start, print_buffer_no_length,copy_buffer_to_buffer, print_buffer
+
+.global atoi
+.global print_buffer_no_length
+.global copy_buffer_to_buffer
+.global print_buffer
+.global open_file
+.global print_menu_and_input
 
 # buffer in eax, lenght in ebx
+# fd in ecx
 print_buffer:
     pushl %ebp
     movl %esp, %ebp
 
     # Write the buffer to stdout
-    movl %eax, %ecx   # pointer to the buffer
     movl %ebx, %edx # length of the buffer
+    movl %ecx, %ebx # file descriptor 1 (stdout)
+       
+    movl %eax, %ecx   # pointer to the buffer
     movl $4, %eax        # syscall number for sys_write
-    movl $1, %ebx        # file descriptor 1 (stdout)
     int $0x80            # make the syscall
-
 
     leave
     ret
@@ -42,18 +55,53 @@ find_nullbyte:
     ret
 
 
-# buffer in eax, length ebx
+# buffer in eax, length ebx fd in ecx
 print_buffer_no_length:
     pushl %ebp
     movl %esp, %ebp
+    push %ecx
     push %eax
     call find_nullbyte
     mov %ecx, %ebx
     pop %eax
+    pop %ecx
     call print_buffer
     leave
     ret
 
+# fd in ecx, returns selection in eax 1=EDF 2=HPF
+print_menu_and_input:
+    pushl %ebp
+    movl %esp, %ebp
+    
+    mov %ecx, fd
+    mov $menu_msg, %eax
+    mov menu_msg_length, %ebx
+    call print_buffer
+
+    movl $3, %eax            # sys_read
+    movl $0, %ebx            # file descriptor (stdin)
+    movl $input, %ecx        # pointer to buffer
+    movl $1, %edx            # number of bytes to read
+    int $0x80
+
+    # print also the input to file (not stdout)
+    mov fd, %ecx
+    cmp $1, %ecx
+    je end_print_menu_and_input
+
+    mov $input, %eax
+    mov $2, %ebx
+    call print_buffer
+
+    end_print_menu_and_input:
+    mov $input, %ebx
+    mov $0, 4(%ebx) # keep only first byte of buffer
+    call atoi
+    end_test:
+
+    leave
+    ret
 # copy buffer in ebx to buffer in ecx 
 # (already at index),  
 # esi has the length of the buffer in ecx
@@ -90,3 +138,48 @@ copy_buffer_to_buffer:
 
     leave
     ret 
+
+# filename in ebx, returns fd in eax
+open_file:
+    pushl %ebp            # Save the base pointer
+    movl %esp, %ebp       # Establish a new base pointer
+
+    pushl %ebx            # Save the filename pointer (ebx) onto the stack
+
+    movl $5, %eax         # sys_open is syscall number 5
+    movl %ebx, %ebx       # Move filename pointer into ebx (already there)
+    movl $66, %ecx        # Flags: O_WRONLY (1) | O_CREAT (64) = 65 (66 includes O_TRUNC to truncate file)
+    movl $438, %edx       # Mode: 0666 in octal (438 in decimal) - read and write for user, group, and others
+
+    int $0x80             # Call kernel
+
+    popl %ebx             # Restore the original value of ebx
+
+
+
+    leave
+    ret                   # Return to caller
+
+# buffer address in %ebx result in eax
+atoi:
+    pushl %ebp
+    movl %esp, %ebp
+    xor %eax, %eax
+    xor %ecx, %ecx # sum
+    xor %edx, %edx
+    atoi_loop:
+        mov (%ebx), %dl 
+        
+        # test if last byte
+        testb %dl, %dl
+        jz end_loop
+        imul $10,%eax
+        sub $48, %edx
+        add %edx, %eax
+        
+        # update buffer position
+        inc %ebx
+        jmp atoi_loop
+    end_loop:
+    leave
+    ret

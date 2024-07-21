@@ -2,11 +2,16 @@
 .section .bss
 .section .data
 
-size:  .long 16 # 4 id, 4 duration, 4 expiration, 4 priority       
-id:.long 0
-duration:.long 0
-temp:.long 0
-print_buffer: .space 128
+size:  
+    .long 16 # 4 id, 4 duration, 4 expiration, 4 priority       
+id:
+    .long 0
+duration:
+    .long 0
+temp:
+    .long 0
+print_buffer: 
+    .space 128
 SYS_BRK:  
     .long 45 # System call number for brk 
         

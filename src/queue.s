@@ -14,14 +14,12 @@ list1_ptr:
     .long 0
 list1_last:
     .long 0
-list1_first:
-    .long 0
+
 list2_ptr:
     .long 0
 list2:
     .long 0
-list2_first:
-    .long 0
+
 list2_last_node:
     .long 0
 queue_list_address:
@@ -30,8 +28,7 @@ id:
     .long 0 
 head_list2:
     .long 0
-head_list1:
-    .long 0
+
 
 mode:
     .long 0
@@ -81,7 +78,12 @@ buffer_queue_address:
 SYS_BRK = 45              # System call number for brk
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
-.global init_queue,add_tasks_to_queue_from_buffer,init_queue_from_buffer,queue_to_buffer,queue_to_list
+.global init_queue
+.global add_tasks_to_queue_from_buffer
+.global init_queue_from_buffer
+.global queue_to_buffer
+.global queue_to_list
+
 .type init_queue, @function
 
 get_queue_method:

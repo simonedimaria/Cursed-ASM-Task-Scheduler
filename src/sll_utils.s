@@ -1,15 +1,11 @@
 # Sorted Linked List
 .section .bss
-    .lcomm buffer, 12  
+
 .section .data
-    PROT_READ     =$0x1
-    PROT_WRITE    =$0x2
-    MAP_PRIVATE   =$0x2
-    MAP_ANONYMOUS = $0x20 
+
 list_head:  
     .long 0 
-list_ptr:  
-    .long 0 
+
 value:  
     .long 0 
 priority:  
@@ -19,17 +15,12 @@ next:
 prev:  
     .long 0 
 
-testv:  
-    .long 0 
-heap_location:
-    .long 0 
 
 node_size:  .long 16 # 4 prev, 4 next, 4 priority, 4 value       
 
 SYS_BRK:  
     .long 45 # System call number for brk 
         
-PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
 
 .global sll_utils

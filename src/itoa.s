@@ -1,4 +1,3 @@
-# The number to print goes in eax
 
 .section .data
 
@@ -7,12 +6,17 @@ itoa_buffer:
     .space 10
 char:
     .byte 0
+fd:
+    .long 1
 
 .section .text
 .global itoa
 .global itoa_to_buffer
 .type itoa, @function
+# The number to print goes in eax
+# fd in ecx
 itoa:
+    mov %ecx, fd
     mov $0, %ecx
 continua_a_dividere:
     cmp $10, %eax
@@ -37,7 +41,7 @@ stampa:
     dec %ebx
     pushw %bx
     movl $4, %eax
-    movl $1, %ebx
+    movl fd, %ebx
     leal char, %ecx
     mov $1, %edx
     int $0x80
@@ -50,6 +54,7 @@ fine_itoa:
     # leal char, %ecx
     # mov $1, %edx
     # int $0x80
+    
     ret
 
 # given a value returns a buffer with ascii representation,

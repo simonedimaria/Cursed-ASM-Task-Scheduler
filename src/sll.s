@@ -24,10 +24,7 @@ list_head:
     .long 0
 list_ptr:
     .long 0
-list1_ptr:
-    .long 0
-list2_ptr:
-    .long 0
+
 list2:
     .long 0
 list1:
@@ -50,8 +47,7 @@ priority:
     .long 0
 next:
     .long 0
-first_pass:
-    .long 0
+
 
 total_duration:
     .long 0
@@ -65,8 +61,7 @@ node_address:
     .long 0
 temp:
     .long 0
-heap_location:
-    .long 0
+
 
 node_index_addres:
     .long 0
@@ -75,6 +70,9 @@ list_buffer:
     
 list_buffer_size:
     .long 1024
+fd:
+    .long 1
+
 colon:
     .ascii ":"
 new_line:
@@ -89,8 +87,12 @@ node_size:  .long 16 # 4 prev, 4 next, 4 value, 4 priority
 SYS_BRK = 45              # System call number for brk
 PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
 .section .text
-.global sll2,add_to_list,list_to_buffer, merge_lists, print_list
-.type sll2, @function
+.global sll2
+.global add_to_list
+.global list_to_buffer
+.global merge_lists
+.global print_list
+
 
 # returns a buffer with [value1,value2,...] where value in 
 # our case is an address of a node
@@ -200,10 +202,18 @@ list_to_buffer:
 # also prints final message
 # list in eax, method in esi, esi=1 straight(hpf) 
 # esi=0 reverse(ldf)
+# fd in ebx
 
 print_list:
     pushl %ebp
     movl %esp, %ebp
+
+
+    mov $0, total_duration
+    mov $0, total_penalty
+
+    push %ecx
+    mov %ecx, fd
     mov %eax, list
 
     call get_last_value
@@ -261,30 +271,37 @@ print_list:
             mov %eax, total_duration
 
         
+        mov fd, %ecx
         mov task_id, %eax
         call itoa
+
         mov $colon, %eax
         mov $1, %ebx
+        mov fd, %ecx
         call print_buffer
 
+        mov fd, %ecx
         mov total_duration, %eax
         call itoa
 
 
-        mov $colon, %eax
-        mov $1, %ebx
-        call print_buffer
-        mov expiration, %eax
-        call itoa
+        # mov $colon, %eax
+        # mov $1, %ebx
+        # mov fd, %ecx
+        # call print_buffer
+        # mov expiration, %eax
+        # call itoa
 
-        mov $colon, %eax
-        mov $1, %ebx
-        call print_buffer
-        mov priority, %eax
-        call itoa
+        # mov $colon, %eax
+        # mov $1, %ebx
+        # call print_buffer
+        # mov priority, %eax
+        # call itoa
 
         mov $new_line, %eax
         mov $1, %ebx
+        mov fd, %ecx
+
         call print_buffer
 
 
@@ -317,21 +334,32 @@ print_list:
 
     print_list_exit:
     mov $conclusione_msg, %eax
+    mov fd, %ecx
+
     call print_buffer_no_length
 
     mov total_duration, %eax
+    mov fd, %ecx
     call itoa
     mov $new_line, %eax
     mov $1, %ebx
+    mov fd, %ecx
+
     call print_buffer
 
     mov $penalty_msg, %eax
+    mov fd, %ecx
+
     call print_buffer_no_length
     mov total_penalty, %eax
+    mov fd, %ecx
     call itoa
     mov $new_line, %eax
     mov $1, %ebx
+    mov fd, %ecx
+
     call print_buffer
+    pop %ecx
     leave
     ret
 
