@@ -1,13 +1,21 @@
+/*
+    itoa.s
+    @note: Integer to ASCII conversion function.
+    @author: Simone Di Maria, Pietro Secchi
+*/
 # The number to print goes in eax
 
 .section .data
 char:
     .byte 0
+
 .section .text
 .global itoa
 .type itoa, @function
+
 itoa:
     mov $0, %ecx
+
 continua_a_dividere:
     cmp $10, %eax
     jge dividi
@@ -15,6 +23,7 @@ continua_a_dividere:
     inc %ecx
     mov %ecx, %ebx
     jmp stampa
+
 dividi:
     movl $0, %edx
     movl $10, %ebx
@@ -22,6 +31,7 @@ dividi:
     pushl %edx
     inc %ecx
     jmp continua_a_dividere
+
 stampa:
     cmp $0, %ebx
     je fine_itoa
@@ -37,6 +47,7 @@ stampa:
     int $0x80
     popw %bx
     jmp stampa
+
 fine_itoa:
     movb $10, char
     movl $4, %eax

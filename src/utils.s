@@ -1,9 +1,45 @@
-.section .data
+/*
+    utils.s
+    @note: General utility functions.
+    @author: Simone Di Maria, Pietro Secchi
+*/
 
-buffer_len = . - buffer
+.section .bss
+    # statically allocated variables
+    .lcomm buffer, 12
+
+.section .data
+arg1_buffer: .space 256  # Buffer per salvare il primo argomento
 
 .section .text
-.global _start
+.global save_first_argument
+.global print_buffer
+.global print_buffer_no_length
+
+
+save_first_argument:
+/*
+save_first_argument(argv) --> arg1_buffer
+@note: Saves the first argument in a buffer.
+*/
+    pushl %ebp
+    movl %esp, %ebp
+
+    # Ottieni il puntatore agli argomenti
+    movl 8(%ebp), %esi  # %esi punta all'indirizzo di argv
+
+    # Puntatore al primo argomento
+    movl 4(%esi), %esi  # %esi punta al primo argomento
+
+    # Salva il primo argomento nel buffer
+    movl $arg1_buffer, %edi
+    movl $256, %ecx     # Lunghezza massima filename in linux
+
+    rep movsb
+
+    leave
+    ret
+
 
 # buffer in eax, lenght in ebx
 print_buffer:
@@ -11,21 +47,19 @@ print_buffer:
     movl %esp, %ebp
 
     # Write the buffer to stdout
-    movl %eax, %ecx   # pointer to the buffer
-    movl %ebx, %edx # length of the buffer
-    movl $4, %eax        # syscall number for sys_write
+    movl %eax, %ecx      # pointer to the buffer
+    movl %ebx, %edx      # length of the buffer
+    movl SYS_WRITE, %eax        # syscall number for sys_write
     movl $1, %ebx        # file descriptor 1 (stdout)
     int $0x80            # make the syscall
 
     # Exit the program
-    movl $1, %eax        # syscall number for sys_exit
+    movl SYS_EXIT, %eax        # syscall number for sys_exit
     xorl %ebx, %ebx      # exit status 0
     int $0x80            # make the syscall
 
     leave
     ret
-
-
 
 
 # buffer in eax, lenght, ebx, returns in ecx
@@ -38,9 +72,9 @@ find_nullbyte:
 
         incl %eax               # Increment EDI to point to the next byte
         incl %ecx               # Increment the counter
-        cmpb %ebx, %ecx         
+        cmp %ebx, %ecx         
         je found_null           
-        jmp find_nullbyte_loop           # Repeat the loop
+        jmp find_nullbyte_loop  # Repeat the loop
     
     found_null:
     leave
@@ -51,4 +85,4 @@ find_nullbyte:
 print_buffer_no_length:
     call find_nullbyte
     mov %ecx, %ebx
-    call print__buffer
+    call print_buffer

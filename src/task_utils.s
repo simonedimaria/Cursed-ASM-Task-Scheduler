@@ -6,10 +6,8 @@ size:  .long 16 # 4 id, 4 priority, 4 expiration, 4 duration
 id:.long 0
 duration:.long 0
 print_buffer: .space 128
-SYS_BRK:  
-    .long 45 # System call number for brk 
-        
-PAGE_SIZE = 4096          # Size of a page (assumed to be 4KB)
+
+
 .section .text
 
 .global task
@@ -90,15 +88,15 @@ allocate_task:
     pushl %ebp
     movl %esp, %ebp
 
-    movl $45, %eax         # brk
+    movl SYS_BRK, %eax         # brk
     xor %ebx, %ebx
-    int $0x80              # Call kernel
+    int $0x80
     mov %eax, %esi
 
     addl size, %eax
 
     movl %eax, %ebx
-    movl $45, %eax 
+    movl SYS_BRK, %eax 
     int $0x80    
     leave
     ret
@@ -107,7 +105,7 @@ allocate_task:
 get_task_id:
     pushl %ebp
     movl %esp, %ebp
-    sub      $16,%eax
+    sub $16,%eax
     leave
     ret
 # address in eax, returns in eax 
