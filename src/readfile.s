@@ -231,6 +231,8 @@ read_nodes:
     mov $buffer, %ecx   # Buffer di input
     mov buffer_size, %edx        # Lunghezza massima
     int $0x80           # Interruzione del kernel
+    t_read:
+    mov %eax, bytes_read
 
     cmp $0, %eax        # Controllo se ci sono errori o EOF
     jle _close_file     # Se ci sono errori o EOF, chiudo il file
@@ -276,11 +278,11 @@ _close_file:
 
 
 
+_exit_fun:
+    mov bytes_read, %ecx
+    leave
+    ret
 _exit1:
     mov $1, %eax        # syscall exit
     xor %ebx, %ebx      # Codice di uscita 0
     int $0x80           # Interruzione del kernel
-_exit_fun:
-
-    leave
-    ret

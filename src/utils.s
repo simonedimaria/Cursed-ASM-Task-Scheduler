@@ -1,12 +1,16 @@
 .section .data
 menu_msg:
-    .asciz "Inserisci il valore appropriato per selezionare l'algoritmo desiderato:\n1 per utilizzare l'algoritmo EDF (Earliest Deadline First).\n2 per utilizzare l'algoritmo HPF (Highest Priority First).\n:"
+    .asciz "Inserisci il valore appropriato per selezionare l'algoritmo desiderato:\n0 per uscire\n1 per utilizzare l'algoritmo EDF (Earliest Deadline First).\n2 per utilizzare l'algoritmo HPF (Highest Priority First).\n:"
 menu_msg_length:
-    .long 193
+    .long 206
 input:
     .space 2
 fd:
     .long 1
+filename:
+    .asciz "test_cases.txt"
+buffer_read_address:
+    .long 0
 .section .text
 
 .global atoi
@@ -98,6 +102,8 @@ print_menu_and_input:
     mov $input, %ebx
     mov $0, 4(%ebx) # keep only first byte of buffer
     call atoi
+
+
     end_test:
 
     leave
@@ -181,5 +187,28 @@ atoi:
         inc %ebx
         jmp atoi_loop
     end_loop:
+    leave
+    ret
+
+
+benchmark:
+    pushl %ebp
+    movl %esp, %ebp
+
+    start_benchmark:
+    mov filename, %ebx
+
+    call init_file
+    call read_nodes
+    # mov %ecx, bytes_read
+    mov %ebx,buffer_read_address
+    
+    call print_menu_and_input
+    mov %eax, %esi
+    dec %esi
+    mov buffer_read_address, %ebx
+    call init_queue_from_buffer
+
+
     leave
     ret

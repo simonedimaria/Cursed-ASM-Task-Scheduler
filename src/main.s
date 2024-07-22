@@ -67,6 +67,7 @@
         mov %ecx, bytes_read
         mov %ebx,buffer_read_address
         
+        mov filename_out_descriptor, %ecx
         call print_menu_and_input
         mov %eax, %esi
         dec %esi
@@ -91,6 +92,7 @@
         xor %ecx, %ecx    
         break2:    
         mov $0,%esi
+        mov queue_head, %eax
         call queue_to_list
         mov %eax, list_head
         xor %ebx, %ebx
