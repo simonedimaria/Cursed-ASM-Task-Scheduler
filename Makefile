@@ -1,6 +1,6 @@
 AS=as
-ASFLAGS=--32 -gstabs
-LD=ld
+ASFLAGS=--32 -gstabs -g -gstabs+
+LD=ld -O --relax
 
 SRC_DIR=src
 OBJ_DIR=obj
@@ -13,9 +13,13 @@ SLL_SRC=$(SRC_DIR)/sll.s
 SLL_UTILS_SRC=$(SRC_DIR)/sll_utils.s
 READFILE_SRC=$(SRC_DIR)/readfile.s
 TASK_SRC=$(SRC_DIR)/task_utils.s
+TASK_SRC=$(SRC_DIR)/task_utils.s
 QUEUE_SRC=$(SRC_DIR)/queue.s
 UI_SRC=$(SRC_DIR)/ui.s
 CONSTANTS_SRC=$(SRC_DIR)/constants.s
+UTILS_SRC=$(SRC_DIR)/utils.s
+
+
 
 MAIN_OBJ=$(OBJ_DIR)/main.o
 UTILS_OBJ=$(OBJ_DIR)/utils.o
@@ -28,6 +32,7 @@ QUEUE_OBJ=$(OBJ_DIR)/queue.o
 UI_OBJ=$(OBJ_DIR)/ui.o
 CONSTANTS_OBJ=$(OBJ_DIR)/constants.o
 
+
 TARGET=$(BIN_DIR)/main
 
 all: $(TARGET)
@@ -35,7 +40,11 @@ all: $(TARGET)
 $(TARGET): $(MAIN_OBJ) $(UTILS_OBJ) $(ITOA_OBJ) $(SLL_OBJ) $(SLL_UTILS_OBJ) $(READFILE_OBJ) $(TASK_OBJ) $(QUEUE_OBJ) $(UI_OBJ) $(CONSTANTS_OBJ)
 	$(LD) -melf_i386 -o $@ $^
 
+
 $(MAIN_OBJ): $(MAIN_SRC)
+	$(AS) $(ASFLAGS) -o $@ $<
+
+$(UTILS_OBJ): $(UTILS_SRC)
 	$(AS) $(ASFLAGS) -o $@ $<
 
 $(UTILS_OBJ): $(UTILS_SRC)

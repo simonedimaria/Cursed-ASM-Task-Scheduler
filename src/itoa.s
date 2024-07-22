@@ -6,14 +6,23 @@
 # The number to print goes in eax
 
 .section .data
+
+itoa_buffer:
+     # 2^32=4294967296, 10 chars
+    .space 10
 char:
     .byte 0
+fd:
+    .long 1
 
 .section .text
 .global itoa
+.global itoa_to_buffer
 .type itoa, @function
-
+# The number to print goes in eax
+# fd in ecx
 itoa:
+    mov %ecx, fd
     mov $0, %ecx
 
 continua_a_dividere:
@@ -41,7 +50,7 @@ stampa:
     dec %ebx
     pushw %bx
     movl $4, %eax
-    movl $1, %ebx
+    movl fd, %ebx
     leal char, %ecx
     mov $1, %edx
     int $0x80
@@ -49,10 +58,40 @@ stampa:
     jmp stampa
 
 fine_itoa:
-    movb $10, char
-    movl $4, %eax
-    movl $1, %ebx
-    leal char, %ecx
-    mov $1, %edx
-    int $0x80
+    # movb $10, char
+    # movl $4, %eax
+    # movl $1, %ebx
+    # leal char, %ecx
+    # mov $1, %edx
+    # int $0x80
+    
+    ret
+
+# given a value returns a buffer with ascii representation,
+# nullbyte as end
+# value in ebx, returns buffer in ebx and 
+# bytes read number in esi
+itoa_to_buffer:
+    pushl %ebp
+    movl %esp, %ebp
+    mov %ebx, %eax
+    mov $itoa_buffer, %ecx
+    #   clean esi
+    # # use esi as counter 
+    xor %esi, %esi
+    itoa_to_buffer_loop:
+        mov $10,%ebx
+        # edx:eax / ebx; quotient -> eax, remainder -> edx
+        div %ebx
+        # too ascii
+        add $48, %edx
+        mov %edx, (%ecx)
+        inc %ecx
+        xor %edx,%edx
+        inc %esi
+        test %eax, %eax
+        jnz itoa_to_buffer_loop
+ 
+ 
+    leave 
     ret

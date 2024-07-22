@@ -245,6 +245,7 @@ get_node_with_priority(eax: list_head, ebx: target_priority) --> eax: node_addr
     movl %esp, %ebp
     
     call get_first_node_ptr
+    mov (%eax), %eax    
     mov %eax, %edx    
 
     mov %ebx, %ecx
@@ -254,15 +255,17 @@ get_node_with_priority(eax: list_head, ebx: target_priority) --> eax: node_addr
         cmp %ebx, %ecx
         je return_matched_node  # if found, return ptr to that node
         call get_next_node_ptr
+        mov (%eax), %eax
         cmp %eax, %edx          # if next_node is NULL:
         je node_not_found       #   return -1
         jmp loop_get_node_with_priority
 
     node_not_found:
-        mov $-1, %ebx
+        mov $-1, %eax
+        jmp end_get_node_with_priority
+    node_found:
     
     return_matched_node:
-        mov %ebx, %eax
     
     leave
     ret
@@ -502,6 +505,26 @@ set_prev_node(eax: node_addr, ebx: prev_node_addr) --> eax: node_addr
     call get_prev_node_ptr
     mov %ebx, (%eax)
     add $16, %eax
+
+    leave
+    ret
+
+# like set_next but also set_prev
+# eax->ebx
+set_next_node:
+    pushl %ebp
+    movl %esp, %ebp
+    push %eax
+    push %ebx
+    call set_next
+
+    # in reverse
+    pop %eax
+    pop %ebx
+
+    call set_prev
+
+
 
     leave
     ret
