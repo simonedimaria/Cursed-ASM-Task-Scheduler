@@ -41,14 +41,13 @@ more_bytes:
 
 .section .text
     .global _start
-    .global atoi
-    .global open_file
+    .global init_file
     .global read_tasks
 
 
-open_file:
+init_file:
 /*
-open_file(ebx: filename) --> eax: fd
+init_file(ebx: filename) --> eax: fd
 @note opens the file with the given filename, returns the file descriptor in eax
 */
     pushl %ebp
@@ -67,36 +66,6 @@ open_file(ebx: filename) --> eax: fd
     ret
 
 
-atoi:
-/*
-atoi(ebx: string) --> eax: decimal_value
-@note converts the char byte to an integer, returns in eax
-*/
-    pushl %ebp
-    movl %esp, %ebp
-
-    xor %eax, %eax
-    xor %ecx, %ecx
-    xor %edx, %edx
-    atoi_loop:
-        mov (%ebx), %dl 
-        
-        # break loop if null byte (end of buffer)
-        testb %dl, %dl
-        jz end_loop
-
-        imul $10, %eax
-        sub $48, %edx
-        add %edx, %eax
-        
-        # update buffer position
-        inc %ebx
-        jmp atoi_loop
-    end_loop:
-    leave
-    ret
-
-
 decode_nodes:
 /*
 decode_nodes(ebx: buffer, ecx: bytes_read) --> eax: buffer_to_decode
@@ -107,9 +76,13 @@ decode_nodes(ebx: buffer, ecx: bytes_read) --> eax: buffer_to_decode
 
     xor %eax, %eax
     mov $buffer_to_decode, %edx
-    
+    mov %ebx, %esi
+    add buffer_size, %esi
     decode_lines_loop:
-        mov (%ebx), %al
+        cmp %esi, %ebx
+        je exit_decode
+        
+        mov (%ebx),%al
         cmpb LINE_FEED_ASCII, %al
         
         je call_decode
@@ -117,27 +90,26 @@ decode_nodes(ebx: buffer, ecx: bytes_read) --> eax: buffer_to_decode
         
         # exit if last byte
         test %ecx, %ecx
-        jz exit_decode 
-
-        sub $1, %ecx
-        add $1, %ebx
-        add $1, %edx
+        jz exit_decode
+        dec %ecx
+        inc %ebx
+        inc %edx
         jmp decode_lines_loop
-
     call_decode:
         movl $0, (%edx) # set last buffer value to null byte
         inc %edx
         mov %edx, buffer_decode_address # save address
         mov %ecx, count
+        mov %ebx, buffer_read_ptr
          
         call decode_node
    
         mov count, %ecx
-        mov buffer_decode_address, %edx # restore address
+        mov buffer_read_ptr, %ebx
+        mov $buffer_to_decode, %edx # restore address
         
         inc %ebx
         jmp decode_lines_loop
-
     exit_decode:
         leave
         ret
@@ -217,53 +189,6 @@ decode_node() --> buffer_nodes
         leave
         ret
 
-# buffer in ebx, bytes read in ecx
-decode_nodes:
-    pushl %ebp
-    movl %esp, %ebp
-    xor %eax, %eax
-    mov $buffer_decode, %edx
-    mov %ebx, %esi
-    add buffer_size, %esi
-    loop_lbl:
-        cmp %esi, %ebx
-        je exit_decode
-        
-        mov (%ebx),%al
-        cmpb $10, %al
-        
-        je call_decode
-        mov %al, (%edx)
-        
-        # exit if last byte
-        test %ecx, %ecx
-        jz exit_decode
-
-        
-
-
-        dec %ecx
-        inc %ebx
-        inc %edx
-        jmp loop_lbl
-    call_decode:
-        movl $0, (%edx) # set last buffer value to null byte
-        inc %edx
-        mov %edx, buffer_decode_address # save address
-        mov %ecx, count
-        mov %ebx, buffer_read_ptr
-         
-        call decode_node
-   
-        mov count, %ecx
-        mov buffer_read_ptr,%ebx
-        mov $buffer_decode,%edx # restore address
-        
-        inc %ebx
-        jmp loop_lbl
-    exit_decode:
-        leave
-        ret
 
 # buffer in ebx, , returns in eax how many bytes to go lseek
 get_broken_node:
@@ -362,11 +287,14 @@ read_tasks() --> eax: buffer
 
     # restore bytes read
     mov bytes_read, %ecx
-
     call decode_nodes
     mov $buffer_nodes, %ebx
-    leave
-    ret
+
+    jmp _exit_fun
+    # mov bytes_read, %ecx
+    # leave
+    # ret
+
 
 
 close_file:
@@ -374,9 +302,15 @@ close_file:
     mov SYS_CLOSE, %eax
     mov %ebx, %ecx
     int $0x80
+    jmp _exit_fun
 
 
 exit_with_status_0:
     mov SYS_EXIT, %eax
     xor %ebx, %ebx
     int $0x80
+
+_exit_fun:
+    mov bytes_read, %ecx
+    leave
+    ret

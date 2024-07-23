@@ -37,36 +37,36 @@
 .global compare_nodes
 .global insert_node
 .global get_node_with_priority
-
-
-.global set_last_node
+# setters
 .global set_first_node
-.global get_first_node_ptr
-.global get_last_node_ptr
-.global get_last_node
+.global set_last_node
+.global set_prev_node
+.global set_next_node
+.global set_next_and_prev_node
+.global set_node_value
+.global set_node_priority
+# getters
 .global get_first_node
-
+.global get_first_node_ptr
+.global get_last_node
+.global get_last_node_ptr
 .global get_next_node_ptr
-.global get_node_priority_ptr
-.global get_node_data_ptr
 .global get_next_node_value
+.global get_prev_node_ptr
+.global get_prev_node_value
+.global get_node_data_ptr
+.global get_node_priority_ptr
 .global get_node_priority
 .global get_value_value
-.global get_prev_node_value
-.global get_prev
-.global set_node_value
-.global set_prev_node
-.global set_node_priority
-.global set_next_node
 
 .type sll_utils, @function # @todo ??
 
 
+allocate_head:
 /*
 allocate_head() --> eax: head_addr
 allocate head node for linked list, returns address in eax
 */
-allocate_head:
     pushl %ebp
     movl %esp, %ebp
 
@@ -74,9 +74,11 @@ allocate_head:
     xor %ebx, %ebx
     int $0x80
 
+    mov %eax, %esi
+
     addl $8, %eax   # head is 8 bytes: 4 byte first node address + 4 byte last node address
-    movl %eax, %ebx
     
+    movl %eax, %ebx
     movl SYS_BRK, %eax 
     int $0x80    
     
@@ -99,13 +101,11 @@ init_list:
     mov %eax, %ebx
     mov list_head, %eax
     
-    call set_first_node      # set_first_node(ebx: first_node_addr)
     call set_last_node       # set_last_node(ebx: last_node_addr)
-    # ebx = last_node_addr
-    # eax = head_addr+8
+    call set_first_node      # set_first_node(ebx: first_node_addr)
     mov %ebx, %eax
-    # ebx = last_node_addr
-    # eax = last_node_addr
+
+    mov %eax, %ebx
     call set_next_node            # set_next_node(eax: list_head, ebx: first_node_addr)
     call set_prev_node
 
@@ -132,6 +132,8 @@ allocate_node:
     movl SYS_BRK, %eax
     xor %ebx, %ebx
     int $0x80
+    mov %eax, %esi
+    
 
     addl node_size, %eax
 
@@ -244,7 +246,7 @@ get_node_with_priority(eax: list_head, ebx: target_priority) --> eax: node_addr
     pushl %ebp
     movl %esp, %ebp
     
-    call get_first_node_ptr
+    call get_last_node_ptr
     mov (%eax), %eax    
     mov %eax, %edx    
 
@@ -263,10 +265,9 @@ get_node_with_priority(eax: list_head, ebx: target_priority) --> eax: node_addr
     node_not_found:
         mov $-1, %eax
         jmp end_get_node_with_priority
-    node_found:
     
     return_matched_node:
-    
+    end_get_node_with_priority:
     leave
     ret
 
@@ -509,20 +510,20 @@ set_prev_node(eax: node_addr, ebx: prev_node_addr) --> eax: node_addr
     leave
     ret
 
-# like set_next but also set_prev
-# eax->ebx
-set_next_node:
+# like set_next_node but also set_prev_node
+# eax<->ebx
+ set_next_and_prev_node:
     pushl %ebp
     movl %esp, %ebp
     push %eax
     push %ebx
-    call set_next
+    call set_next_node
 
     # in reverse
     pop %eax
     pop %ebx
 
-    call set_prev
+    call set_prev_node
 
 
 

@@ -70,6 +70,8 @@ heap_location:
     .long 0
 start_node_index:
     .long 0
+node_index_addres:
+    .long 0
 list_buffer:
     .space 1024
 list_buffer_size:
@@ -105,6 +107,7 @@ node_size:
 # buffer will be 4(node_value)
 list_to_buffer:
 /*
+**DEPRECATED**
 list_to_buffer(eax: list_head, ebx: start_node_index, ecx: order) --> edx: buffer, ebx: last_node_index
 @note converts the linked list to a buffer in the order specified by given order (0: descending, 1: ascending),
       returns the buffer in edx, the last read node in ebx or -1 if the list is ended 
@@ -112,38 +115,29 @@ list_to_buffer(eax: list_head, ebx: start_node_index, ecx: order) --> edx: buffe
     pushl %ebp
     movl %esp, %ebp
 
+    mov %ebx, node_index_addres
     mov %eax, list_head
     cmp $0,%esi 
 
-    mov $list_buffer,%ecx
+    mov $list_buffer, %ecx
 
     # init counter
     mov $0,%edi
-    je list_to_buffer_dec
+    je list_to_buffer_desc
 
-    mov $list_buffer, %edx
-
-    # init counter
-    mov $0, %esi  
     list_to_buffer_asc:
-        call get_last_node 
+        call get_first_node 
         mov %ebx, %ecx
         mov start_node_index, %ebx
         cmp $0, %ebx
         jne list_to_buffer_asc_iterate
-        call get_first_node
+        call get_last_node
         
         # while (node != last_node && i < buffer_size):
         #   buffer[i] = node
         #   node = node.next
         #   i++
         list_to_buffer_asc_iterate:
-            cmp %ebx, %ecx
-            je end_list_to_buffer_end
-
-            cmp list_buffer_size, %esi
-            je end_list_to_buffer
-
             # save node to buffer
             mov %ebx, %eax
             call get_value_value
@@ -158,7 +152,7 @@ list_to_buffer(eax: list_head, ebx: start_node_index, ecx: order) --> edx: buffe
 
             cmp list_buffer_size, %edi
             je end_list_to_buffer
-            add $4, %edi
+            inc %edi
             add $4, %ecx
             jmp list_to_buffer_asc_iterate
 
@@ -191,15 +185,12 @@ list_to_buffer(eax: list_head, ebx: start_node_index, ecx: order) --> edx: buffe
             add $4, %esi
             add $4, %edx
 
-            jmp list_to_buffer_dec_iterate
+            jmp list_to_buffer_desc_iterate
 
     end_list_to_buffer_end:
-        xor %ebx, %ebx
-
-    end_list_to_buffer_end:
-
         # make ebx 0 to signal the end of the list
         xor %ebx, %ebx
+
     end_list_to_buffer:
             mov $0, 4(%edx)
         mov list_head,%eax
@@ -226,10 +217,10 @@ print_list:
     mov %ecx, fd
     mov %eax, list
 
-    call get_last_value
+    call get_first_node
     mov %ebx, last_node
     
-    call get_first_value
+    call get_last_node
     mov %ebx, first_node
     mov %ebx, %eax
 
@@ -324,7 +315,7 @@ print_list:
         je print_list_exit
 
         mov node_ptr, %eax
-        call get_prev_value
+        call get_prev_node_value
         mov %ebx, %eax
         mov %ebx, node_ptr
         jmp print_list_loop
@@ -334,7 +325,7 @@ print_list:
         je print_list_exit
 
         mov node_ptr, %eax
-        call get_next_value
+        call get_next_node_value
         mov %ebx, %eax
         mov %ebx, node_ptr
         
@@ -388,12 +379,12 @@ add_to_list(eax: list_head, ebx: value, ecx: priority) --> eax: list_head
     mov %ecx, priority
 
     # init last and first values
-    call get_first_node
+    call get_last_node
     mov %ebx, first_node
     # init list_ptr
     mov %ebx, list_ptr
 
-    call get_last_node
+    call get_first_node
     mov %ebx, last_list_ptr
     mov %ebx, last_node
 
@@ -427,7 +418,7 @@ add_to_list(eax: list_head, ebx: value, ecx: priority) --> eax: list_head
         mov %eax, last_list_ptr
         
 
-        call get_next_value
+        call get_next_node_value
         mov %ebx, list_ptr
         
         cmp first_node, %ebx # last_node, list_ptr
@@ -435,7 +426,7 @@ add_to_list(eax: list_head, ebx: value, ecx: priority) --> eax: list_head
 
         mov list_head, %eax
         mov node_address, %ebx
-        call set_last
+        call set_first_node
 
         jmp place_node
 
@@ -450,7 +441,7 @@ place_node:
     mov list_head, %eax
 
     mov node_address, %ebx
-    call set_first
+    call set_last_node
     
     not_first:
 
@@ -494,7 +485,7 @@ place_node:
 #     mov %eax, last_list_ptr
 # 
 #     # update list_ptr to the new value
-#     call get_next_value
+#     call get_next_node_value
 #     mov %ebx, list_ptr
 # 
 #     jmp loop_sort
@@ -512,7 +503,7 @@ place_node:
 #     # uses ebx from before
 #     mov node_address, %ebx
 #     mov list_head, %eax
-#     call set_first
+#     call set_last_node
 # 
 #     # call check_if_last
 #     # call check_if_first
@@ -528,18 +519,18 @@ merge_lists:
     mov %eax, list1
     mov %ebx, list2
 
-    call get_last_value
+    call get_first_node
     mov %ebx, list1_last
 
-    call get_first_value
+    call get_last_node
     mov %ebx, list1_first
 
 
     mov list2,%eax
-    call get_last_value
+    call get_first_node
     mov %ebx, list2_last
 
-    call get_first_value
+    call get_last_node
     mov %ebx, list2_first
 
 
@@ -547,16 +538,16 @@ merge_lists:
     mov list1_last, %eax
     mov list2_first, %ebx
 
-    call set_next_node
+    call set_next_and_prev_node
 
     mov list2_last, %eax
     mov list1_first, %ebx
 
-    call set_next_node
+    call set_next_and_prev_node
 
     mov list1,%eax
     mov list2_last, %ebx
-    call set_last
+    call set_first_node
 
     leave
     ret
@@ -578,12 +569,12 @@ check_if_first()
     # update first
     mov list_head, %eax
     mov node_address, %ebx
-    call set_first_node
+    call set_last_node
     mov %ebx, first_node
 
     check_if_first_exit:
-    leave
-    ret
+        leave
+        ret
 
 
 check_if_last:
@@ -601,7 +592,7 @@ check_if_last()
     # update last
     mov list_head, %eax
     mov node_address, %ebx
-    call set_last
+    call set_first_node
     mov %ebx,last_node
     check_if_last_exit:
     leave

@@ -12,7 +12,7 @@
     filename_out:
         .space 256
     filename_out_descriptor:
-        STDOUT
+        .long 1 # stdout
     output:
         .long 0 # 0=no 1=yes  
     buffer_read_address:
@@ -64,7 +64,7 @@
         mov filename, %ebx
 
         call init_file
-        call read_nodes
+        call read_tasks
         mov %ecx, bytes_read
         mov %ebx,buffer_read_address
         
@@ -80,7 +80,7 @@
         test %ecx, %ecx
         jz finish_read
         read_more:
-            call read_nodes
+            call read_tasks
             test %ecx, %ecx
             jz finish_read
 

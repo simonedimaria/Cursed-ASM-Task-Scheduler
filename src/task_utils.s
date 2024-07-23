@@ -2,11 +2,16 @@
 .section .bss
 .section .data
 
-size:  .long 16 # 4 id, 4 priority, 4 expiration, 4 duration       
-id:.long 0
-duration:.long 0
-print_buffer: .space 128
-
+size:  
+    .long 16 # 4 id, 4 duration, 4 expiration, 4 priority       
+id:
+    .long 0
+duration:
+    .long 0
+temp:
+    .long 0
+print_buffer: 
+    .space 128
 
 .section .text
 
@@ -14,6 +19,8 @@ print_buffer: .space 128
 .global task_from_buffer
 .global get_task_priority_value
 .global get_task_expiration_value
+.global get_task_duration_value
+.global get_task_id_value
 
 # id in eax, duration in ebx, expiration in ecx,priority in edx, 
 # return address in eax
@@ -36,23 +43,25 @@ task:
     leave
     ret
 
-# buffer in %ecx
+# buffer in %ebx
 task_from_buffer:
     pushl %ebp
     movl %esp, %ebp
 
+    mov %ebx, temp
     call allocate_task
+    mov temp, %ebx
     # id
-    mov -16(%ecx), %edx
+    mov -16(%ebx), %edx
     mov %edx, -16(%eax)
     # duration
-    mov -12(%ecx), %edx
+    mov -12(%ebx), %edx
     mov %edx, -12(%eax)
     # expiration
-    mov -8(%ecx), %edx
+    mov -8(%ebx), %edx
     mov %edx, -8(%eax)
     # priority
-    mov -4(%ecx), %edx
+    mov -4(%ebx), %edx
     mov %edx, -4(%eax)
 
 

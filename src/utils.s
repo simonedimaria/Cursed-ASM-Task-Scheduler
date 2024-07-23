@@ -22,10 +22,15 @@ filename:
     .asciz "test_cases.txt"
 buffer_read_address:
     .long 0
+
 .section .text
-.global save_first_argument
-.global print_buffer
+.global atoi
 .global print_buffer_no_length
+.global copy_buffer_to_buffer
+.global print_buffer
+.global open_file
+.global print_menu_and_input
+.global save_first_argument
 
 
 save_first_argument:
@@ -198,6 +203,10 @@ open_file:
 
 # buffer address in %ebx result in eax
 atoi:
+/*
+atoi(ebx: string) --> eax: decimal_value
+@note converts the char byte to an integer, returns in eax
+*/
     pushl %ebp
     movl %esp, %ebp
     xor %eax, %eax
@@ -229,7 +238,7 @@ benchmark:
     mov filename, %ebx
 
     call init_file
-    call read_nodes
+    call read_tasks
     # mov %ecx, bytes_read
     mov %ebx,buffer_read_address
     

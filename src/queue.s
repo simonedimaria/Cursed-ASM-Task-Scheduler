@@ -78,12 +78,6 @@ buffer_queue:
     .space 1024
 buffer_queue_address:
     .long 0
-buffer_nodes_address:
-    .long 0
-buffer_queue:
-    .space 1024
-buffer_queue_address:
-    .long 0
 
 .section .text
 .global init_queue
@@ -235,7 +229,6 @@ queue_to_list:
     pushl %ebp
     movl %esp, %ebp
 
-
     mov %esi, mode
     mov %eax, queue_head
 
@@ -248,27 +241,25 @@ queue_to_list:
         mov (%eax), %eax
         mov %eax, list1
         
-        
-        # get the last element  (dec)
-        call get_first_value
+        # get the last element (dec)
+        call get_last_node
         mov %ebx, list1_last
-        
 
         # get the first element (dec) 
-        call get_last_value
+        call get_first_node
         mov %ebx, list1_ptr
         mov %ebx, %eax
 
 
         # get the second list address
-        call get_value
+        call get_node_data_ptr
         mov (%eax), %eax
         mov %eax, list2_ptr
         
         mov %eax, list2
 
         # get the last node of the second list
-        call get_last_value
+        call get_first_node
         mov %ebx, list2_last_node
 
         # in list1_ptr there is the first
@@ -281,12 +272,12 @@ queue_to_list:
             mov list1_ptr,%eax
 
             # get next list1
-            call get_prev 
+            call get_prev_node_ptr 
             mov (%eax), %eax
             mov %eax, temp
 
             # get list2 address
-            call get_value
+            call get_node_data_ptr
             mov (%eax), %ebx
             mov list2_ptr,%eax
             # now i have in ebx the new list and in eax 
@@ -320,6 +311,9 @@ queue_to_list:
 # mode in esi 0=dec, 1=asc
 # returns in edx the penalty, in ebx the buffer
 queue_to_buffer:
+/*
+**DEPRECATED**
+*/
     pushl %ebp
     movl %esp, %ebp
     mov %esi, mode
@@ -331,7 +325,7 @@ queue_to_buffer:
     # #if 0 populate 
     call get_queue_list_address # now is in eax
     mov (%eax),%eax
-    call get_first_value              # eax has the second list 
+    call get_last_node              # eax has the second list 
 
     mov $0,%ecx # set second list address to null
     
@@ -343,10 +337,10 @@ queue_to_buffer:
         # #if 0 populate
         mov %ebx,%edx
         mov %ebx,%eax
-        call get_value # ebx has se first node address
+        call get_node_priority # ebx has se first node address
         mov (%eax),%eax
         mov %eax, head_list2
-        call get_first_value             
+        call get_last_node             
         
         mov %ebx,%ecx
         mov %edx, %ebx
@@ -379,7 +373,7 @@ queue_to_buffer:
         jz end_iterate
 
         # get the task address in eax
-        call get_value
+        call get_node_priority
         mov %eax, task_address
 
         call get_task_duration_value
@@ -505,8 +499,6 @@ add_to_queue:
     call get_queue_list_address
     mov (%eax), %eax
     mov %eax, queue_list_address
-
-    call get_first_node_ptr
 
     mov priority1, %ebx
     call get_node_with_priority
