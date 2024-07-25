@@ -4,4 +4,5 @@ obj/*
 bin/*
 !bin/.gitkeep
 
+test*
 out

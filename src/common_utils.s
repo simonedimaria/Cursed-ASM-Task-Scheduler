@@ -143,8 +143,8 @@ open_file(ebx: filename) --> eax: fd
 
     movl SYS_OPEN, %eax
     movl %ebx, %ebx
-    movl $66, %ecx  # O_WRONLY (1) | O_CREAT (64) = 65 (66 includes O_TRUNC to truncate file)
-    # movl $438, %edx       # Mode: 0666 in octal (438 in decimal) - read and write for user, group, and others
+    movl $66, %ecx   # O_WRONLY (1) | O_CREAT (64) = 65 (66 includes O_TRUNC to truncate file)
+    movl $438, %edx  # Mode: 0666 in octal (438 in decimal) - read and write for user, group, and others
     int $0x80
 
     popl %ebx
@@ -162,12 +162,12 @@ print_buffer(eax: buffer, ebx: length, ecx: fd)
     movl %esp, %ebp
 
     # Write the buffer to stdout
-    movl %ebx, %edx # length of the buffer
-    movl %ecx, %ebx # file descriptor 1 (stdout)
+    movl %ebx, %edx  # length of the buffer
+    movl %ecx, %ebx  # file descriptor 1 (stdout)
        
-    movl %eax, %ecx   # pointer to the buffer
-    movl SYS_WRITE, %eax        # syscall number for sys_write
-    int $0x80            # make the syscall
+    movl %eax, %ecx       # pointer to the buffer
+    movl SYS_WRITE, %eax  # syscall number for sys_write
+    int $0x80             # make the syscall
 
     leave
     ret
