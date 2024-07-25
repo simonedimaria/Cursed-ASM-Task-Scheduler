@@ -5,32 +5,30 @@
 */
 
 
-.section .bss
-
 .section .data
-menu:
-    .ascii "======================================\n"
-    .ascii "          ASM task scheduler          \n"
-    .ascii "======================================\n"
-    .ascii "  [1] Earliest Deadline First (EDF)   \n"
-    .ascii "  [2] Highest Priority First (HPF)    \n"
-    .ascii "  [3] Exit                            \n"
-    .ascii "======================================\n"
-menu_len:
-    .long . - menu
-gimme_input:
-    .ascii "\n> "
-gimme_input_len:
-    .long . - gimme_input
-user_choice:
-    .long 0
-# user choiches constants
-SCHEDULE_EDF:
-    .long 49
-SCHEDULE_HPF:
-    .long 50
-EXIT:
-    .long 51
+    menu:
+        .ascii "======================================\n"
+        .ascii "          ASM task scheduler          \n"
+        .ascii "======================================\n"
+        .ascii "  [1] Earliest Deadline First (EDF)   \n"
+        .ascii "  [2] Highest Priority First (HPF)    \n"
+        .ascii "  [0] Exit                            \n"
+        .ascii "======================================\n"
+    menu_len:
+        .long . - menu
+    input_prompt:
+        .ascii "\n> "
+    input_prompt_len:
+        .long . - input_prompt
+    user_choice:
+        .long 0
+    # user choices constants
+    SCHEDULE_EDF:
+        .long 49
+    SCHEDULE_HPF:
+        .long 50
+    EXIT:
+        .long 51
 
 
 .section .text
@@ -40,13 +38,13 @@ EXIT:
 start_ui:
 /*
 start_ui()
-@note starts the user interface
+@note starts the user interface.
 */
     pushl %ebp
     movl %esp, %ebp
 
     call print_menu
-    jmp handle_user_input
+    call handle_user_input
 
     exit_menu:
         leave
@@ -56,7 +54,7 @@ start_ui()
 print_menu:
 /*
 print_menu()
-@note prints the user interface menu
+@note prints the user interface menu.
 */
     pushl %ebp
     movl %esp, %ebp
@@ -73,9 +71,12 @@ print_menu()
 
 handle_user_input:
 /*
-handle_user_input()
-@note reads the user input and sets the user_choice variable
+handle_user_input() --> ebx: user_choice
+@note reads the user input and sets the user_choice variable.
 */
+    pushl %ebp
+    movl %esp, %ebp
+    
     call ask_for_input
 
     movl SYS_READ, %eax
@@ -84,43 +85,26 @@ handle_user_input()
     movl $2, %edx
     int $0x80
 
-    # @todo atoi?
+    mov $user_choice, %ebx
+    movl $0, 1(%ebx) # keep only first byte of buffer
+    call atoi
     
-    movb user_choice, %al
-    
-    cmp SCHEDULE_EDF, %al
-    je handle_edf_scheduling
-    
-    cmp SCHEDULE_HPF, %al
-    je handle_hpf_scheduling
-    
-    cmp EXIT, %al
-    je handle_exit
-    
-    handle_edf_scheduling:
-        # @todo
-        jmp handle_user_input
-    
-    handle_hpf_scheduling:
-        # @todo
-        jmp handle_user_input
-
-    handle_exit:
-        jmp exit_menu
+    leave
+    ret
 
 
 ask_for_input:
 /*
 ask_for_input()
-@note prints the prompt for the user input
+@note prints the prompt for the user input.
 */
     pushl %ebp
     movl %esp, %ebp
 
     movl SYS_WRITE, %eax
     movl STDOUT, %ebx
-    movl $gimme_input, %ecx
-    movl gimme_input_len, %edx
+    movl $input_prompt, %ecx
+    movl input_prompt_len, %edx
     int $0x80
 
     leave

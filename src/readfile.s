@@ -6,41 +6,36 @@
 
 
 .section .data
-filename:
-    .asciz "test_cases.txt"    # Nome del file di testo da leggere
-fd:
-    .int 0               # File descriptor
+    fd:
+        .int 0
+    buffer:
+        .space 4096
+    buffer_size:
+        .long 4096
+    buffer_atoi:
+        .space 256       
+    buffer_to_decode:
+        .space 256       
+    buffer_nodes:
+        .space 8192        
+    buffer_nodes_index:
+        .long 0        
+    buffer_read_ptr:
+        .long 0        
+    buffer_decode_address:
+        .long 0    
+    buffer_nodes_address:
+        .long 0    
+    count:
+        .long 0    
+    bytes_read:
+        .long 0
+    more_bytes:
+        # 0=no 1=yes, default: 0
+        .int 0
 
-
-
-buffer: .space 2048       # Spazio per il buffer di input
-buffer_size: .long 2048      # Spazio per il buffer di input
-buffer_end: .long 0       # Spazio per il buffer di input
-
-buffer_atoi: .space 256       
-
-buffer_to_decode: .space 256       
-buffer_nodes: .space 4096        
-buffer_nodes_index: .long 0        
-buffer_read_ptr: .long 0        
-buffer_decode_address: .long 0    
-buffer_nodes_address: .long 0    
-count:
-    .long 0    
-newline:
-    .byte 10    # Valore del simbolo di nuova linea
-lines:
-    .int 0      # Numero di linee
-bytes_read:
-    .long 0
-
-more_bytes:
-    .int 0      # 0=no 1=yes
-
-.section .bss
 
 .section .text
-    .global _start
     .global init_file
     .global read_tasks
 
@@ -48,28 +43,116 @@ more_bytes:
 init_file:
 /*
 init_file(ebx: filename) --> eax: fd
-@note opens the file with the given filename, returns the file descriptor in eax
+@note opens the file with the given filename, returns the file descriptor in eax.
 */
     pushl %ebp
     movl %esp, %ebp
 
     mov SYS_OPEN, %eax
-    mov $0, %ecx  # open file in O_RDONLY mode
+    mov O_RDONLY, %ecx
     int $0x80
 
-    # exit if error
     cmp $0, %eax
     jl exit_with_status_0
 
     mov %eax, fd
+    
     leave
     ret
 
 
+lseek:
+/*
+lseek(eax: file_buffer_position, ebx: fd) --> eax: lseek
+@note moves the file pointer of the given file descriptor to the given file buffer position
+*/
+    pushl %ebp
+    movl %esp, %ebp
+
+    mov %eax, %ecx
+    mov SYS_LSEEK, %eax
+    mov fd, %ebx
+    movl SEEK_CUR, %edx
+    int $0x80
+
+    leave
+    ret
+
+
+read_tasks:
+/*
+read_tasks() --> eax: buffer
+@note reads the file line by line, returns the buffer with the file content
+*/
+    pushl %ebp
+    movl %esp, %ebp
+    
+    movl $0, buffer_nodes_index
+ 
+    mov SYS_READ, %eax
+    mov fd, %ebx
+    mov $buffer, %ecx
+    mov buffer_size, %edx
+    int $0x80
+    
+    t_read:
+        mov %eax, bytes_read
+
+        # close the file if SYS_READ fails or EOF
+        cmp $0, %eax
+        jle close_file
+
+        # store the number of bytes read
+        mov %ecx, %ebx
+        mov %eax, %ecx
+
+        # save bytes read
+        mov %ecx, bytes_read
+        call get_broken_node
+
+        test %eax, %eax
+        jz no_lseek
+
+    yes_lseek:
+        call lseek
+    
+    no_lseek:
+        movl $1, more_bytes
+    
+    mov $buffer, %ebx
+
+    # restore bytes read
+    mov bytes_read, %ecx
+    call decode_nodes
+    mov $buffer_nodes, %ebx
+    mov bytes_read, %ecx
+    
+    leave
+    ret
+
+
+close_file:
+    movl $0, more_bytes
+    mov SYS_CLOSE, %eax
+    mov %ebx, %ecx
+    int $0x80
+    
+    mov bytes_read, %ecx
+    
+    leave
+    ret
+
+
+exit_with_status_0:
+    mov SYS_EXIT, %eax
+    xor %ebx, %ebx
+    int $0x80
+
+
 decode_nodes:
 /*
-decode_nodes(ebx: buffer, ecx: bytes_read) --> eax: buffer_to_decode
-@note decodes the nodes from the file buffer, returns the decoded nodes in buffer_nodes
+decode_nodes(ebx: buffer, ecx: bytes_read)
+@note decodes the nodes from the file buffer, returns the decoded nodes in buffer_nodes.
 */
     pushl %ebp
     movl %esp, %ebp
@@ -78,11 +161,12 @@ decode_nodes(ebx: buffer, ecx: bytes_read) --> eax: buffer_to_decode
     mov $buffer_to_decode, %edx
     mov %ebx, %esi
     add buffer_size, %esi
+
     decode_lines_loop:
         cmp %esi, %ebx
         je exit_decode
         
-        mov (%ebx),%al
+        mov (%ebx), %al
         cmpb LINE_FEED_ASCII, %al
         
         je call_decode
@@ -95,6 +179,7 @@ decode_nodes(ebx: buffer, ecx: bytes_read) --> eax: buffer_to_decode
         inc %ebx
         inc %edx
         jmp decode_lines_loop
+
     call_decode:
         movl $0, (%edx) # set last buffer value to null byte
         inc %edx
@@ -110,6 +195,7 @@ decode_nodes(ebx: buffer, ecx: bytes_read) --> eax: buffer_to_decode
         
         inc %ebx
         jmp decode_lines_loop
+
     exit_decode:
         leave
         ret
@@ -117,13 +203,14 @@ decode_nodes(ebx: buffer, ecx: bytes_read) --> eax: buffer_to_decode
 
 decode_node:
 /*
-decode_node() --> buffer_nodes
-@note decodes the nodes from the file buffer, returns the decoded nodes in buffer_nodes
+decode_node()
+@note decodes the nodes from the file buffer, returns the decoded nodes in buffer_nodes.
 */
    pushl %ebp
    movl %esp, %ebp
 
     mov $buffer_to_decode, %edx
+    
     loop_decode_node_start:
         mov $buffer_atoi, %ebx
 
@@ -190,7 +277,6 @@ decode_node() --> buffer_nodes
         ret
 
 
-# buffer in ebx, , returns in eax how many bytes to go lseek
 get_broken_node:
 /*
 get_broken_node(ebx: nodes_buffer, ecx: bytes_read) --> eax: bytes_to_lseek
@@ -204,9 +290,9 @@ get_broken_node(ebx: nodes_buffer, ecx: bytes_read) --> eax: bytes_to_lseek
     add %ebx, %eax
 
     xor %ecx, %ecx
+
     loop_broken_node:
         # check if arrived at the start of the buffer
-
         cmp %eax, %ebx
         je exit_broken_node
 
@@ -222,95 +308,8 @@ get_broken_node(ebx: nodes_buffer, ecx: bytes_read) --> eax: bytes_to_lseek
         jmp loop_broken_node
 
     exit_broken_node:
-    sub %ebx, %eax
-    sub bytes_read, %eax
-    leave
-    ret
-
-
-lseek:
-/*
-lseek(eax: file_buffer_position, ebx: fd) --> eax: lseek
-@note moves the file pointer of the given file descriptor to the given file buffer position
-*/
-    pushl %ebp
-    movl %esp, %ebp
-
-    mov %eax, %ecx
-    mov SYS_LSEEK, %eax
-    mov fd, %ebx
-    movl SEEK_CUR, %edx
-    int $0x80
-
-    leave
-    ret
-
-
-read_tasks:
-/*
-read_tasks() --> eax: buffer
-@note reads the file line by line, returns the buffer with the file content
-*/
-    pushl %ebp
-    movl %esp, %ebp
-    
-    mov SYS_READ, %eax
-    mov fd, %ebx
-    mov $buffer, %ecx
-    mov buffer_size, %edx
-    int $0x80
-    t_read:
-    mov %eax, bytes_read
-
-    # if sys_read fails or EOF, close the file 
-    cmp $0, %eax
-    jle close_file
-
-    # store the number of bytes read
-    mov %ecx, %ebx
-    mov %eax, %ecx
-
-    # save bytes read
-    mov %ecx, bytes_read
-    call get_broken_node
-
-    test %eax,%eax
-    jz no_lseek
-    
-    yes_lseek:
-        call lseek
-    
-    no_lseek:
-        movl $1, more_bytes
-    
-    mov $buffer, %ebx
-
-    # restore bytes read
-    mov bytes_read, %ecx
-    call decode_nodes
-    mov $buffer_nodes, %ebx
-
-    jmp _exit_fun
-    # mov bytes_read, %ecx
-    # leave
-    # ret
-
-
-
-close_file:
-    movl $0, more_bytes
-    mov SYS_CLOSE, %eax
-    mov %ebx, %ecx
-    int $0x80
-    jmp _exit_fun
-
-
-exit_with_status_0:
-    mov SYS_EXIT, %eax
-    xor %ebx, %ebx
-    int $0x80
-
-_exit_fun:
-    mov bytes_read, %ecx
-    leave
-    ret
+        sub %ebx, %eax
+        sub bytes_read, %eax
+   
+        leave
+        ret

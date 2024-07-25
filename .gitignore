@@ -1,4 +1,7 @@
 obj/*
+!obj/.gitkeep
+
 bin/*
-bin/main
-/bin
+!bin/.gitkeep
+
+out
